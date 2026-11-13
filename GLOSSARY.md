@@ -9,7 +9,7 @@ The landing page: who Dhaivat is and the high-level shape of their work, readabl
 _Avoid_: Landing, index, main page
 
 **Section**:
-A top-level area of the site a visitor can navigate into from the home page (e.g. Experience, Projects).
+A top-level area of the site, reachable from the main navigation, whether it is a band on the Home page or a page of its own (e.g. Experience, Projects, Contact). The top of the Home page that introduces Dhaivat is not a Section.
 _Avoid_: Tab, category
 
 **Deep dive**:
