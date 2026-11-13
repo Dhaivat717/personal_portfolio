@@ -13,16 +13,16 @@ A top-level area of the site a visitor can navigate into from the home page (e.g
 _Avoid_: Tab, category
 
 **Deep dive**:
-A standalone page that tells the full story of one piece of work: the problem, the approach, and the result.
+A standalone page that tells the full story of one Personal project: what it does, how it's built, and what was learned. Work highlights never get one.
 _Avoid_: Case study, blog post, article
 
 **Work highlight**:
-A piece of work done for an employer that is featured on the site, optionally with its own deep dive.
+A piece of work done for an employer, summarized on the site at a high level (what, scale, result) with no Deep dive.
 _Avoid_: Work project, achievement
 
 **Personal project**:
-A piece of work Dhaivat built on their own time, outside any employer. Not in the first version, but the site must have room for it.
-_Avoid_: Side project, hobby project
+A piece of work Dhaivat built outside any employer, school work included, summarized at a high level and linking to its Deep dive. All Personal projects share one Section.
+_Avoid_: Side project, hobby project, academic project, school project
 
 **Visitor**:
 Anyone reading the site; primarily recruiters and hiring managers.
