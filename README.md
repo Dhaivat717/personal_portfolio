@@ -18,7 +18,7 @@ Astro renders every page to plain HTML at build time. Nothing is server-rendered
 ```
 
 - **Who Dhaivat is** (name, role, employer, years of experience, GitHub/LinkedIn, canonical origin, Turnstile site key) lives in one place: [`src/settings.ts`](src/settings.ts). Pages read from it, so changing the role there updates the Home page and its title with no other edits.
-- **Theme:** colors are CSS custom properties (tokens) in [`src/styles/global.css`](src/styles/global.css). One set is for light and one for dark, and the browser picks with `prefers-color-scheme`. There is no toggle. Each theme has one accent: light `#c2410c`, dark `#ff8a3d`. Components use tokens only and never hard-code colors.
+- **Theme:** colors are CSS custom properties (tokens) in [`src/styles/global.css`](src/styles/global.css), each written as `light-dark(<light>, <dark>)`. Each theme has one accent: light `#c2410c`, dark `#ff8a3d`. Components use tokens only and never hard-code colors. The theme follows the OS (`prefers-color-scheme`) until the Visitor clicks the sun/moon toggle (`src/components/ThemeToggle.astro`). The toggle sets `data-theme` on `<html>` and saves the choice in `localStorage`, and a tiny inline script in `Base.astro` applies it before first paint so the page never flashes. Without JS the toggle is hidden and the OS setting applies.
 - **Fonts:** two self-hosted subset `woff2` files (Inter for text, JetBrains Mono for code), served with `font-display: swap`.
 - **Content** _(planned)_: each Personal project is one folder in the `projects` content collection. The folder name is the URL slug. Experience data (Work highlights) is data the pages read, not hard-coded markup.
 - **Dynamic bits** _(planned)_: two Cloudflare Pages Functions, `/api/contact` (contact form with Turnstile and `send_email`) and `/api/github-stats` (contributions count). Everything else stays static.
@@ -44,7 +44,7 @@ A request for `/` is served straight from `dist/index.html`. At build time, that
 | `src/settings.ts` | **Site settings module:** the one source for name, role, employer, links, origin, Turnstile site key. |
 | `src/pages/` | Routes. `index.astro` is the Home page (hero plus `#experience`, `#projects`, `#contact` Section anchors); `404.astro` is the noindexed Not Found page. _(planned)_ `projects/index.astro`, `projects/[slug].astro`, `og/*.png` social cards. |
 | `src/layouts/Base.astro` | Shared page shell: lang, meta, skip link, `<main>`, footer. |
-| `src/components/` | Reusable Astro components (`Footer.astro` today). React islands go here too, only where interactivity is needed. |
+| `src/components/` | Reusable Astro components (`Footer.astro`, `ThemeToggle.astro`). React islands go here too, only where interactivity is needed. |
 | `src/styles/global.css` | `@font-face`, the light/dark **color tokens**, base styles, the `:focus-visible` ring (2px solid accent, 2px offset), layout widths. |
 | `src/content.config.ts` | Content collections. `projects` loads one folder per Personal project. _(planned)_ strict schema and build-time content checks. |
 | `src/content/projects/` | Personal project folders: `<slug>/index.mdx` plus images next to it. Empty for now. |

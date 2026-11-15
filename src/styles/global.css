@@ -20,22 +20,24 @@
 
 /*
  * Color tokens. Components use these and never hard-code colors.
- * One accent per theme; dark follows prefers-color-scheme (no toggle).
+ * Each token is light-dark(<light>, <dark>); one accent per theme.
+ * The theme follows the OS (prefers-color-scheme) until the Visitor picks
+ * one with the theme toggle, which sets data-theme on <html>.
  */
 :root {
   color-scheme: light dark;
 
-  --bg: #fff;
-  --fg: #1d1d1f;
-  --fg-strong: #000;
-  --muted: #6e6e73;
-  --line: #d2d2d7;
-  --surface: #fff;
-  --hover: #f5f5f7;
-  --glass: rgb(255 255 255 / 0.72);
-  --accent: #c2410c;
+  --bg: light-dark(#fff, #000);
+  --fg: light-dark(#1d1d1f, #f5f5f7);
+  --fg-strong: light-dark(#000, #fff);
+  --muted: light-dark(#6e6e73, #a1a1a6);
+  --line: light-dark(#d2d2d7, #38383d);
+  --surface: light-dark(#fff, #1c1c1e);
+  --hover: light-dark(#f5f5f7, #2c2c2e);
+  --glass: light-dark(rgb(255 255 255 / 0.72), rgb(0 0 0 / 0.66));
+  --accent: light-dark(#c2410c, #ff8a3d);
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
-  --on-accent: #fff;
+  --on-accent: light-dark(#fff, #1a0c02);
 
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -46,20 +48,11 @@
   --wide: 1068px;
   --narrow: 734px;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #000;
-    --fg: #f5f5f7;
-    --fg-strong: #fff;
-    --muted: #a1a1a6;
-    --line: #38383d;
-    --surface: #1c1c1e;
-    --hover: #2c2c2e;
-    --glass: rgb(0 0 0 / 0.66);
-    --accent: #ff8a3d;
-    --on-accent: #1a0c02;
-  }
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 *,
@@ -78,6 +71,9 @@ body {
   color: var(--fg);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
 }
 a {
   color: inherit;
@@ -94,6 +90,9 @@ strong {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  body {
+    transition: none;
   }
 }
 
