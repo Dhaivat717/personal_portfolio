@@ -24,6 +24,10 @@ _Avoid_: Work project, achievement
 A piece of work Dhaivat built outside any employer, school work included, summarized at a high level and linking to its Deep dive. All Personal projects share one Section.
 _Avoid_: Side project, hobby project, academic project, school project
 
+**Featured project**:
+A Personal project chosen to appear on the Home page as well as in the Projects Section. Only a few are featured at a time; the rest appear only in the Projects Section.
+_Avoid_: Highlighted project, pinned project
+
 **Visitor**:
 Anyone reading the site; primarily recruiters and hiring managers.
 _Avoid_: User, reader
