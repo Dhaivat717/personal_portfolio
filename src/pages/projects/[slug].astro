@@ -1,0 +1,70 @@
+---
+/**
+ * A Personal project's Deep dive. For now: title, pitch and the MDX body.
+ * The meta strip, media, table of contents and prev/next cards come later.
+ */
+import type { GetStaticPaths } from "astro";
+import { render } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import { getProjects, type Project } from "../../projects";
+import { site } from "../../settings";
+
+export const getStaticPaths = (async () => {
+  const projects = await getProjects();
+  return projects.map((project) => ({ params: { slug: project.id }, props: { project } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  project: Project;
+}
+
+const { project } = Astro.props;
+const { title, pitch } = project.data;
+const { Content } = await render(project);
+---
+
+<Base title={`${title} · ${site.name}`} description={pitch}>
+  <article class="narrow deep-dive">
+    <a class="back" href="/projects">← Projects</a>
+    <h1>{title}</h1>
+    <p class="pitch">{pitch}</p>
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</Base>
+
+<style>
+  .deep-dive {
+    padding-top: 48px;
+    padding-bottom: 72px;
+  }
+  .back {
+    display: inline-block;
+    margin-bottom: 24px;
+    font-size: 15px;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .back:hover {
+    text-decoration: underline;
+  }
+  h1 {
+    font-size: clamp(32px, 4.5vw, 48px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin: 0;
+    color: var(--fg-strong);
+  }
+  .pitch {
+    margin: 12px 0 0;
+    font-size: 21px;
+    line-height: 1.4;
+    color: var(--muted);
+  }
+  .prose {
+    margin-top: 40px;
+    font-size: 17px;
+  }
+</style>
