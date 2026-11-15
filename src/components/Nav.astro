@@ -1,0 +1,252 @@
+---
+/**
+ * The site nav: name · Section links · Résumé · Dark mode switch. Section
+ * links always point to Home page anchors, so they work the same from any page.
+ *
+ * At phone width (with JS) the links and Résumé collapse into a menu behind a
+ * button; the Dark mode switch stays in the bar beside it. Without JS there is
+ * no menu button and every link stays visible.
+ */
+import { site } from "../settings";
+import ThemeToggle from "./ThemeToggle.astro";
+
+const sections = [
+  { label: "Experience", href: "/#experience" },
+  { label: "Contact", href: "/#contact" },
+];
+const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
+---
+
+<header class="nav" data-nav>
+  <nav class="wrap bar" aria-label="Main">
+    <a class="brand" href="/">{site.name}</a>
+    <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-menu" data-menu-button>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <line class="top" x1="4" y1="8" x2="20" y2="8"></line>
+        <line class="bottom" x1="4" y1="16" x2="20" y2="16"></line>
+      </svg>
+    </button>
+    <div class="menu" id="nav-menu">
+      <ul class="links">
+        {
+          sections.map((section) => (
+            <li>
+              <a href={section.href}>{section.label}</a>
+            </li>
+          ))
+        }
+      </ul>
+      <a class="resume" href="/resume.pdf" download={resumeDownloadName} title="Download résumé (PDF)">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-download-icon>
+          <path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"></path>
+        </svg>
+        Résumé
+      </a>
+    </div>
+    <ThemeToggle />
+  </nav>
+</header>
+
+<script>
+  // Frosted glass once the page has scrolled away from the very top.
+  const header = document.querySelector<HTMLElement>("[data-nav]");
+  if (header) {
+    const markScrolled = () => header.classList.toggle("scrolled", window.scrollY > 8);
+    window.addEventListener("scroll", markScrolled, { passive: true });
+    markScrolled();
+  }
+
+  // Phone menu: toggled by the button; Esc, a link or a click outside closes it.
+  const button = document.querySelector<HTMLButtonElement>("[data-menu-button]");
+  const menu = document.getElementById("nav-menu");
+  if (button && menu) {
+    const setOpen = (open: boolean) => button.setAttribute("aria-expanded", String(open));
+    const isOpen = () => button.getAttribute("aria-expanded") === "true";
+
+    button.addEventListener("click", () => setOpen(!isOpen()));
+    menu.addEventListener("click", (e) => {
+      if ((e.target as Element).closest("a")) setOpen(false);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && isOpen()) {
+        setOpen(false);
+        button.focus();
+      }
+    });
+    document.addEventListener("click", (e) => {
+      const target = e.target as Node;
+      if (isOpen() && !menu.contains(target) && !button.contains(target)) setOpen(false);
+    });
+  }
+</script>
+
+<style>
+  /*
+   * Clear at the top, frosted glass once scrolled. The hairline border is
+   * always there (transparent at the top), so the switch never shifts layout.
+   */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    border-bottom: 1px solid transparent;
+    transition:
+      background-color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      backdrop-filter var(--dur) var(--ease);
+  }
+  .nav.scrolled {
+    background: var(--glass);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom-color: var(--line);
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    height: var(--nav-h);
+  }
+  .brand {
+    margin-right: auto;
+    font-weight: 600;
+    color: var(--fg-strong);
+    text-decoration: none;
+  }
+  .links {
+    display: flex;
+    gap: 22px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 14px;
+  }
+  .links a {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color var(--dur) var(--ease);
+  }
+  .links a:hover {
+    color: var(--fg);
+  }
+  .resume {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 980px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: transform 150ms var(--ease);
+  }
+  .resume:active {
+    transform: scale(0.97);
+  }
+  .resume svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .menu {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+  .menu-btn {
+    display: none;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin-right: -6px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--fg);
+    cursor: pointer;
+  }
+  .menu-btn svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+  .menu-btn line {
+    transform-origin: center;
+    transition: transform var(--dur) var(--ease);
+  }
+  .menu-btn[aria-expanded="true"] .top {
+    transform: translateY(4px) rotate(45deg);
+  }
+  .menu-btn[aria-expanded="true"] .bottom {
+    transform: translateY(-4px) rotate(-45deg);
+  }
+
+  @media (max-width: 720px) {
+    .bar {
+      gap: 12px;
+    }
+    /* Without JS the links simply stay in the bar. */
+    .links {
+      gap: 16px;
+    }
+    .menu .resume {
+      padding: 6px 12px;
+    }
+
+    /* With JS they collapse into a panel under the bar. */
+    :global(html.js) .menu-btn {
+      display: grid;
+    }
+    :global(html.js) .menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
+      padding: 8px 22px 18px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+    }
+    :global(html.js) .menu-btn[aria-expanded="false"] + .menu {
+      display: none;
+    }
+    :global(html.js) .links {
+      flex-direction: column;
+      gap: 0;
+      font-size: 17px;
+    }
+    :global(html.js) .links a {
+      display: block;
+      padding: 10px 0;
+      color: var(--fg);
+    }
+    :global(html.js) .menu .resume {
+      justify-content: center;
+      margin-top: 10px;
+      padding: 10px 16px;
+      font-size: 15px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav,
+    .links a,
+    .resume,
+    .menu-btn line {
+      transition: none;
+    }
+  }
+</style>

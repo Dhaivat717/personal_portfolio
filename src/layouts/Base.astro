@@ -1,7 +1,7 @@
 ---
 import "../styles/global.css";
 import Footer from "../components/Footer.astro";
-import ThemeToggle from "../components/ThemeToggle.astro";
+import Nav from "../components/Nav.astro";
 
 interface Props {
   title: string;
@@ -18,8 +18,12 @@ const { title, description, noindex = false } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Apply a saved theme choice before first paint, so the page never flashes the other theme. -->
+    <!--
+      Before first paint: mark that JS runs (so the phone menu collapses without
+      a flash) and apply a saved theme choice, so the page never flashes the other theme.
+    -->
     <script is:inline>
+      document.documentElement.classList.add("js");
       try {
         const theme = localStorage.getItem("theme");
         if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
@@ -32,11 +36,7 @@ const { title, description, noindex = false } = Astro.props;
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header">
-      <div class="wrap">
-        <ThemeToggle />
-      </div>
-    </header>
+    <Nav />
     <main id="main" tabindex="-1">
       <slot />
     </main>
@@ -44,11 +44,3 @@ const { title, description, noindex = false } = Astro.props;
   </body>
 </html>
 
-<style>
-  .site-header .wrap {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    height: 52px;
-  }
-</style>

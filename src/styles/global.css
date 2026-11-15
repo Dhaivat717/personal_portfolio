@@ -47,6 +47,7 @@
   --dur-long: 500ms;
   --wide: 1068px;
   --narrow: 734px;
+  --nav-h: 52px;
 }
 :root[data-theme="light"] {
   color-scheme: light;
@@ -126,4 +127,9 @@ main:focus {
 }
 .skip-link:focus {
   top: 12px;
+}
+
+/* Section jumps land below the sticky nav, not under it. */
+section[id] {
+  scroll-margin-top: calc(var(--nav-h) + 12px);
 }
