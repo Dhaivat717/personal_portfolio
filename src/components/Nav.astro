@@ -36,7 +36,12 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
           ))
         }
       </ul>
-      <a class="resume" href="/resume.pdf" download={resumeDownloadName}>Résumé</a>
+      <a class="resume" href="/resume.pdf" download={resumeDownloadName} title="Download résumé (PDF)">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-download-icon>
+          <path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"></path>
+        </svg>
+        Résumé
+      </a>
     </div>
     <ThemeToggle />
   </nav>
@@ -128,6 +133,7 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
   .resume {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
     padding: 6px 16px;
     border-radius: 980px;
     background: var(--accent);
@@ -139,6 +145,15 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
   }
   .resume:active {
     transform: scale(0.97);
+  }
+  .resume svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .menu {

@@ -48,7 +48,11 @@ for (const path of ["/", "/no-such-page"]) {
 
 test("the Résumé button links to /resume.pdf, which is served as a PDF", async ({ page, request }) => {
   await page.goto("/");
-  await expect(mainNav(page).getByRole("link", { name: "Résumé" })).toHaveAttribute("href", "/resume.pdf");
+  const resume = mainNav(page).getByRole("link", { name: "Résumé" });
+  await expect(resume).toHaveAttribute("href", "/resume.pdf");
+  // It downloads rather than navigates, and says so with a visible download icon.
+  await expect(resume).toHaveAttribute("download", "Dhaivat-Patel-Resume.pdf");
+  await expect(resume.locator("[data-download-icon]")).toBeVisible();
   const res = await request.get("/resume.pdf");
   expect(res.status()).toBe(200);
   expect(res.headers()["content-type"]).toBe("application/pdf");
