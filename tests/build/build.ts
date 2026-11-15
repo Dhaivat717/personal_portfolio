@@ -15,7 +15,7 @@ export interface BuildResult {
  * Seam 1: run the production build against a fixture content directory
  * (`tests/build/fixtures/<name>`) and report its exit status and output.
  */
-export function buildWithFixture(fixture: string, env: Record<string, string> = {}): BuildResult {
+export function buildWithFixture(fixture: string): BuildResult {
   const outDir = mkdtempSync(join(tmpdir(), "portfolio-build-"));
   try {
     const res = spawnSync("npx", ["astro", "build", "--outDir", outDir], {
@@ -23,9 +23,9 @@ export function buildWithFixture(fixture: string, env: Record<string, string> = 
       encoding: "utf8",
       env: {
         ...process.env,
-        SITE_ENV: "production",
+        // As CI builds: drafts off. SITE_ENV=production is reserved for the
+        // Pages Production environment (it also turns on analytics).
         SHOW_DRAFTS: "false",
-        ...env,
         PROJECTS_DIR: resolve(root, "tests/build/fixtures", fixture),
         NO_COLOR: "1",
       },

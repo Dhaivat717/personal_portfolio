@@ -8,9 +8,10 @@ describe("production build", () => {
     expect(status).toBe(0);
   });
 
-  test("fails and names the file when a Personal project's frontmatter is malformed", () => {
+  test("fails and points at the bad line when a Personal project's frontmatter is malformed", () => {
     const { status, output } = buildWithFixture("malformed-frontmatter");
     expect(status).not.toBe(0);
-    expect(output).toMatch(/broken[\\/]index\.mdx/);
+    expect(output).toMatch(/broken[\\/]index\.mdx:3/);
+    expect(output).toContain("title: [unclosed");
   });
 });

@@ -12,9 +12,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Production build settings: drafts off, no secrets.
+# Build as production: drafts off, no secrets. SITE_ENV stays unset here;
+# SITE_ENV=production is set only in the Pages Production environment,
+# where it also turns on analytics.
 env:
-  SITE_ENV: production
   SHOW_DRAFTS: "false"
 
 jobs:
