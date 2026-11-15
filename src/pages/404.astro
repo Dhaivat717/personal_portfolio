@@ -1,0 +1,31 @@
+---
+import Base from "../layouts/Base.astro";
+import { site } from "../settings";
+---
+
+<Base title={`Not found · ${site.name}`} noindex>
+  <div class="narrow notfound">
+    <h1>Page not found.</h1>
+    <p>That address doesn't match anything here.</p>
+    <p><a href="/">Home</a> · <a href="/projects">Projects</a></p>
+  </div>
+</Base>
+
+<style>
+  .notfound {
+    padding-top: 96px;
+  }
+  h1 {
+    font-size: clamp(32px, 4.5vw, 48px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin: 0 0 12px;
+    color: var(--fg-strong);
+  }
+  p {
+    color: var(--muted);
+  }
+  a {
+    color: var(--accent);
+  }
+</style>
