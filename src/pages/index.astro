@@ -1,0 +1,50 @@
+---
+import Base from "../layouts/Base.astro";
+import { site } from "../settings";
+---
+
+<Base title={`${site.name} · ${site.role} @ ${site.employer}`}>
+  <div class="wrap hero">
+    <h1>{site.name}</h1>
+    <div class="chips">
+      <span class="chip">{site.role}</span>
+      <span class="chip">{site.employer}</span>
+    </div>
+  </div>
+
+  <!-- Placeholders: later tickets fill these Sections. -->
+  <section id="experience"></section>
+  <section id="projects"></section>
+  <section id="contact"></section>
+</Base>
+
+<style>
+  .hero {
+    padding: 72px 22px 56px;
+    text-align: center;
+  }
+  h1 {
+    font-size: clamp(34px, 5vw, 56px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin: 0;
+    color: var(--fg-strong);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .chip {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border-radius: 980px;
+    padding: 4px 12px;
+  }
+</style>
