@@ -33,8 +33,10 @@ A request for `/` is served straight from `dist/index.html`. At build time, that
 4. **`src/layouts/Base.astro`** renders the HTML shell for every page:
    - `<html lang="en">`, title, description and an optional `noindex`
    - the font preload and the global stylesheet
-   - **"Skip to content"** as the first focusable element, then `<main id="main">`, then the footer
-5. **`src/components/Footer.astro`** renders the GitHub/LinkedIn icon links and the current year (at build time). No email address appears anywhere on the site.
+   - an inline pre-paint script that adds `js` to `<html>` (so the phone menu collapses without a flash) and applies a saved theme
+   - **"Skip to content"** as the first focusable element, then the nav, then `<main id="main">`, then the footer
+5. **`src/components/Nav.astro`** renders the sticky nav: name (links Home) · Experience · Contact · Résumé · Dark mode switch. Section links always point to Home anchors (`/#experience`). It is clear at the top and turns frosted glass once scrolled. At phone width (with JS) the links and Résumé collapse into a menu button; the switch stays in the bar. Without JS every link stays in the bar.
+6. **`src/components/Footer.astro`** renders the GitHub/LinkedIn icon links and the current year (at build time). No email address appears anywhere on the site.
 6. Astro writes `dist/`. The `404.astro` page becomes `dist/404.html`, which Cloudflare Pages serves with status **404** for any unknown path.
 
 ## Major files and folders
@@ -43,12 +45,12 @@ A request for `/` is served straight from `dist/index.html`. At build time, that
 | --- | --- |
 | `src/settings.ts` | **Site settings module:** the one source for name, role, employer, links, origin, Turnstile site key. |
 | `src/pages/` | Routes. `index.astro` is the Home page (hero plus `#experience`, `#projects`, `#contact` Section anchors); `404.astro` is the noindexed Not Found page. _(planned)_ `projects/index.astro`, `projects/[slug].astro`, `og/*.png` social cards. |
-| `src/layouts/Base.astro` | Shared page shell: lang, meta, skip link, `<main>`, footer. |
-| `src/components/` | Reusable Astro components (`Footer.astro`, `ThemeToggle.astro`). React islands go here too, only where interactivity is needed. |
+| `src/layouts/Base.astro` | Shared page shell: lang, meta, skip link, nav, `<main>`, footer. |
+| `src/components/` | Reusable Astro components (`Nav.astro`, `ThemeToggle.astro`, `Footer.astro`). React islands go here too, only where interactivity is needed. |
 | `src/styles/global.css` | `@font-face`, the light/dark **color tokens**, base styles, the `:focus-visible` ring (2px solid accent, 2px offset), layout widths. |
 | `src/content.config.ts` | Content collections. `projects` loads one folder per Personal project. _(planned)_ strict schema and build-time content checks. |
 | `src/content/projects/` | Personal project folders: `<slug>/index.mdx` plus images next to it. Empty for now. |
-| `public/` | Files copied as-is into `dist/` (fonts today; _(planned)_ `resume.pdf`, project clips under `public/<slug>/`, `_headers`). |
+| `public/` | Files copied as-is into `dist/` (fonts and `resume.pdf` today; _(planned)_ project clips under `public/<slug>/`, `_headers`). |
 | `tests/build/` | **Seam 1:** runs the real production build against fixture content in `tests/build/fixtures/<name>/` and checks the exit status and output. |
 | `tests/site/` | **Seam 2:** Playwright and plain HTTP tests against `dist/` served by `wrangler pages dev`, Cloudflare's local runtime. |
 | `.github/workflows/ci.yml` | The CI workflow that runs on every PR. |

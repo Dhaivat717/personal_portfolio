@@ -14,28 +14,37 @@ for (const path of ["/", "/no-such-page"]) {
   });
 }
 
-test("the nav stays stuck to the top and turns frosted glass once scrolled, without shifting layout", async ({ page }) => {
-  await page.emulateMedia({ colorScheme: "light" });
-  await page.goto("/");
-  // Placeholder Sections are empty today; make the page tall enough to scroll.
-  await page.addStyleTag({ content: "main { min-height: 300vh; }" });
-  const header = page.getByRole("banner");
-  await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-  await expect(header).toHaveCSS("backdrop-filter", "none");
-  const before = await header.boundingBox();
+const GLASS = { light: "rgba(255, 255, 255, 0.72)", dark: "rgba(0, 0, 0, 0.66)" } as const;
+const HAIRLINE = { light: "rgb(210, 210, 215)", dark: "rgb(56, 56, 61)" } as const;
 
-  await page.mouse.wheel(0, 600);
-  await expect(header).toHaveCSS("background-color", "rgba(255, 255, 255, 0.72)");
-  await expect(header).toHaveCSS("backdrop-filter", /blur\(20px\)/);
-  await expect(header).toHaveCSS("border-bottom-color", "rgb(210, 210, 215)");
-  const after = await header.boundingBox();
-  expect(after).toEqual({ ...before, y: 0 });
-  expect(before?.y).toBe(0);
-  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+for (const path of ["/", "/no-such-page"]) {
+  for (const scheme of ["light", "dark"] as const) {
+    test(`on ${path} in ${scheme} mode the nav sticks to the top and turns frosted glass once scrolled, without shifting layout`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto(path);
+      // Pages are short today; make them tall enough to scroll.
+      await page.addStyleTag({ content: "main { min-height: 300vh; }" });
+      const header = page.getByRole("banner");
+      const toggle = mainNav(page).getByRole("switch", { name: "Dark mode" });
+      await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await expect(header).toHaveCSS("backdrop-filter", "none");
+      await expect(toggle).toBeVisible();
+      const before = await header.boundingBox();
+      expect(before?.y).toBe(0);
 
-  await page.mouse.wheel(0, -600);
-  await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-});
+      await page.mouse.wheel(0, 600);
+      await expect(header).toHaveCSS("background-color", GLASS[scheme]);
+      await expect(header).toHaveCSS("backdrop-filter", /blur\(20px\)/);
+      await expect(header).toHaveCSS("border-bottom-color", HAIRLINE[scheme]);
+      expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+      expect(await header.boundingBox()).toEqual(before);
+      await expect(toggle).toBeInViewport();
+
+      await page.mouse.wheel(0, -600);
+      await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    });
+  }
+}
 
 test("the Résumé button links to /resume.pdf, which is served as a PDF", async ({ page, request }) => {
   await page.goto("/");
@@ -44,6 +53,24 @@ test("the Résumé button links to /resume.pdf, which is served as a PDF", async
   expect(res.status()).toBe(200);
   expect(res.headers()["content-type"]).toBe("application/pdf");
   expect((await res.body()).subarray(0, 5).toString()).toBe("%PDF-");
+});
+
+test("tab order runs Skip to content → name → Section links → Résumé → Dark mode switch, all inside the nav", async ({ page }) => {
+  await page.goto("/");
+  const nav = mainNav(page);
+  await expect(nav.getByRole("switch", { name: "Dark mode" })).toBeVisible();
+  const order = [
+    page.getByRole("link", { name: "Skip to content" }),
+    nav.getByRole("link", { name: "Dhaivat Patel" }),
+    nav.getByRole("link", { name: "Experience" }),
+    nav.getByRole("link", { name: "Contact" }),
+    nav.getByRole("link", { name: "Résumé" }),
+    nav.getByRole("switch", { name: "Dark mode" }),
+  ];
+  for (const el of order) {
+    await page.keyboard.press("Tab");
+    await expect(el).toBeFocused();
+  }
 });
 
 test.describe("at phone width", () => {

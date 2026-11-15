@@ -14,13 +14,13 @@ const sections = [
   { label: "Experience", href: "/#experience" },
   { label: "Contact", href: "/#contact" },
 ];
-const resumeFile = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
+const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
 ---
 
 <header class="nav" data-nav>
   <nav class="wrap bar" aria-label="Main">
     <a class="brand" href="/">{site.name}</a>
-    <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-menu">
+    <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-menu" data-menu-button>
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <line class="top" x1="4" y1="8" x2="20" y2="8"></line>
         <line class="bottom" x1="4" y1="16" x2="20" y2="16"></line>
@@ -29,14 +29,14 @@ const resumeFile = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
     <div class="menu" id="nav-menu">
       <ul class="links">
         {
-          sections.map((s) => (
+          sections.map((section) => (
             <li>
-              <a href={s.href}>{s.label}</a>
+              <a href={section.href}>{section.label}</a>
             </li>
           ))
         }
       </ul>
-      <a class="resume" href="/resume.pdf" download={resumeFile}>Résumé</a>
+      <a class="resume" href="/resume.pdf" download={resumeDownloadName}>Résumé</a>
     </div>
     <ThemeToggle />
   </nav>
@@ -46,13 +46,13 @@ const resumeFile = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
   // Frosted glass once the page has scrolled away from the very top.
   const header = document.querySelector<HTMLElement>("[data-nav]");
   if (header) {
-    const update = () => header.classList.toggle("scrolled", window.scrollY > 8);
-    window.addEventListener("scroll", update, { passive: true });
-    update();
+    const markScrolled = () => header.classList.toggle("scrolled", window.scrollY > 8);
+    window.addEventListener("scroll", markScrolled, { passive: true });
+    markScrolled();
   }
 
   // Phone menu: toggled by the button; Esc, a link or a click outside closes it.
-  const button = document.querySelector<HTMLButtonElement>("[aria-controls='nav-menu']");
+  const button = document.querySelector<HTMLButtonElement>("[data-menu-button]");
   const menu = document.getElementById("nav-menu");
   if (button && menu) {
     const setOpen = (open: boolean) => button.setAttribute("aria-expanded", String(open));
@@ -101,7 +101,7 @@ const resumeFile = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
     display: flex;
     align-items: center;
     gap: 22px;
-    height: 52px;
+    height: var(--nav-h);
   }
   .brand {
     margin-right: auto;
