@@ -127,3 +127,8 @@ main:focus {
 .skip-link:focus {
   top: 12px;
 }
+
+/* Anchor jumps land below the sticky nav (52px + hairline), not under it. */
+[id] {
+  scroll-margin-top: 64px;
+}

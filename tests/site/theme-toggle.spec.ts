@@ -26,10 +26,8 @@ test("in dark mode the Dark mode switch is on, and switching it off turns the pa
 test("the switch works from the keyboard", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/");
-  await page.keyboard.press("Tab");
-  await page.keyboard.press("Tab");
   const toggle = page.getByRole("switch", { name: "Dark mode" });
-  await expect(toggle).toBeFocused();
+  await toggle.focus();
   await page.keyboard.press("Space");
   await expect(toggle).toBeChecked();
   await page.keyboard.press("Enter");
@@ -47,12 +45,22 @@ test("the chosen theme is remembered across pages and reloads", async ({ page })
   await expect(page.locator("body")).toHaveCSS("background-color", BLACK);
 });
 
-test("the switch comes right after 'Skip to content' in the tab order", async ({ page }) => {
+test("the switch sits in the nav and comes last in its tab order, after Résumé", async ({ page }) => {
   await page.goto("/");
-  await page.keyboard.press("Tab");
-  await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
-  await page.keyboard.press("Tab");
-  await expect(page.getByRole("switch", { name: "Dark mode" })).toBeFocused();
+  const nav = page.getByRole("navigation", { name: "Main" });
+  await expect(nav.getByRole("switch", { name: "Dark mode" })).toBeVisible();
+  const order = [
+    page.getByRole("link", { name: "Skip to content" }),
+    nav.getByRole("link", { name: "Dhaivat Patel" }),
+    nav.getByRole("link", { name: "Experience" }),
+    nav.getByRole("link", { name: "Contact" }),
+    nav.getByRole("link", { name: "Résumé" }),
+    nav.getByRole("switch", { name: "Dark mode" }),
+  ];
+  for (const el of order) {
+    await page.keyboard.press("Tab");
+    await expect(el).toBeFocused();
+  }
 });
 
 test.describe("without JavaScript", () => {
