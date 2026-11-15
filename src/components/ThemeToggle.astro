@@ -1,35 +1,38 @@
 ---
 /**
- * One button that flips between light and dark. It shows a sun in light mode
- * and a moon in dark mode, with an animated swap. Until the Visitor clicks it,
- * the theme follows the OS; a click saves the choice for later visits.
- * Hidden without JavaScript, where the page simply follows the OS.
+ * The theme switch: a sliding "Dark mode" switch. The knob sits left with a
+ * sun in light mode and slides right, turning into a moon, in dark mode.
+ * Until the Visitor flips it, the theme follows the OS; flipping it saves the
+ * choice for later visits. Hidden without JavaScript, where the page simply
+ * follows the OS.
  */
 ---
 
-<button class="toggle" type="button" data-theme-toggle hidden>
-  <svg class="icon sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <circle class="core" cx="12" cy="12" r="4.5"></circle>
-    <g class="rays">
-      <line x1="12" y1="1.5" x2="12" y2="4"></line>
-      <line x1="12" y1="20" x2="12" y2="22.5"></line>
-      <line x1="1.5" y1="12" x2="4" y2="12"></line>
-      <line x1="20" y1="12" x2="22.5" y2="12"></line>
-      <line x1="4.6" y1="4.6" x2="6.3" y2="6.3"></line>
-      <line x1="17.7" y1="17.7" x2="19.4" y2="19.4"></line>
-      <line x1="4.6" y1="19.4" x2="6.3" y2="17.7"></line>
-      <line x1="17.7" y1="6.3" x2="19.4" y2="4.6"></line>
-    </g>
-  </svg>
-  <svg class="icon moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1z"></path>
-  </svg>
+<button class="switch" type="button" role="switch" aria-label="Dark mode" aria-checked="false" data-theme-toggle hidden>
+  <span class="knob">
+    <svg class="icon sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle class="core" cx="12" cy="12" r="4.5"></circle>
+      <g class="rays">
+        <line x1="12" y1="1.5" x2="12" y2="4"></line>
+        <line x1="12" y1="20" x2="12" y2="22.5"></line>
+        <line x1="1.5" y1="12" x2="4" y2="12"></line>
+        <line x1="20" y1="12" x2="22.5" y2="12"></line>
+        <line x1="4.6" y1="4.6" x2="6.3" y2="6.3"></line>
+        <line x1="17.7" y1="17.7" x2="19.4" y2="19.4"></line>
+        <line x1="4.6" y1="19.4" x2="6.3" y2="17.7"></line>
+        <line x1="17.7" y1="6.3" x2="19.4" y2="4.6"></line>
+      </g>
+    </svg>
+    <svg class="icon moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1z"></path>
+    </svg>
+  </span>
 </button>
 
 <script>
   type Theme = "light" | "dark";
 
-  const button = document.querySelector<HTMLButtonElement>("[data-theme-toggle]");
+  const toggle = document.querySelector<HTMLButtonElement>("[data-theme-toggle]");
   const root = document.documentElement;
   const osDark = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -39,14 +42,12 @@
     return osDark.matches ? "dark" : "light";
   }
 
-  function render(toggle: HTMLButtonElement) {
-    const theme = currentTheme();
-    toggle.dataset.current = theme;
-    toggle.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
+  function render(el: HTMLButtonElement) {
+    el.setAttribute("aria-checked", String(currentTheme() === "dark"));
   }
 
-  if (button) {
-    button.addEventListener("click", () => {
+  if (toggle) {
+    toggle.addEventListener("click", () => {
       const next: Theme = currentTheme() === "dark" ? "light" : "dark";
       root.dataset.theme = next;
       try {
@@ -54,101 +55,100 @@
       } catch {
         // Storage blocked: the switch still applies for this page view.
       }
-      render(button);
+      render(toggle);
     });
-    osDark.addEventListener("change", () => render(button));
-    render(button);
-    button.hidden = false;
+    osDark.addEventListener("change", () => render(toggle));
+    render(toggle);
+    toggle.hidden = false;
   }
 </script>
 
 <style>
-  .toggle {
+  .switch {
+    --track-w: 60px;
+    --track-h: 32px;
+    --knob: 26px;
+    --gap: 2px;
+
     position: relative;
-    display: inline-grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
+    display: inline-block;
+    width: var(--track-w);
+    height: var(--track-h);
     padding: 0;
     border: 1px solid var(--line);
-    border-radius: 50%;
-    background: var(--surface);
-    color: var(--fg);
+    border-radius: 999px;
+    background: var(--hover);
     cursor: pointer;
     transition:
       background-color var(--dur) var(--ease),
-      border-color var(--dur) var(--ease),
-      transform 150ms var(--ease);
+      border-color var(--dur) var(--ease);
   }
-  .toggle[hidden] {
+  .switch[hidden] {
     display: none;
   }
-  .toggle:hover {
-    background: var(--hover);
+
+  .knob {
+    position: absolute;
+    top: var(--gap);
+    left: var(--gap);
+    display: grid;
+    place-items: center;
+    width: var(--knob);
+    height: var(--knob);
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--on-accent);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+    transition: transform var(--dur-long) var(--ease-emph);
   }
-  .toggle:active {
-    transform: scale(0.92);
+  .switch:active .knob {
+    width: calc(var(--knob) + 4px);
+    border-radius: 999px;
   }
 
   .icon {
     position: absolute;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     transition:
       transform var(--dur-long) var(--ease-emph),
       opacity var(--dur) var(--ease);
   }
   .sun {
     fill: none;
-    stroke: var(--accent);
-    stroke-width: 2;
+    stroke: currentColor;
+    stroke-width: 2.2;
     stroke-linecap: round;
   }
   .sun .core {
-    fill: var(--accent);
-    transform-origin: 12px 12px;
-    transition: transform var(--dur-long) var(--ease-emph);
-  }
-  .sun .rays {
-    transform-origin: 12px 12px;
-    transition:
-      transform var(--dur-long) var(--ease-emph),
-      opacity var(--dur) var(--ease);
+    fill: currentColor;
   }
   .moon {
-    fill: var(--accent);
-  }
-
-  /* Light: the sun is out, the moon waits below the horizon. */
-  .toggle[data-current="light"] .moon {
+    fill: currentColor;
     opacity: 0;
     transform: rotate(-90deg) scale(0.4);
   }
-  .toggle[data-current="light"]:hover .sun .rays {
-    transform: rotate(45deg);
-  }
 
-  /* Dark: the sun's rays spin in and it sets as the moon swings up. */
-  .toggle[data-current="dark"] .sun {
+  /* Dark: the knob slides right; the sun sets as the moon swings up. */
+  .switch[aria-checked="true"] .knob {
+    transform: translateX(calc(var(--track-w) - var(--knob) - 2 * var(--gap) - 2px));
+  }
+  .switch[aria-checked="true"]:active .knob {
+    transform: translateX(calc(var(--track-w) - var(--knob) - 2 * var(--gap) - 6px));
+  }
+  .switch[aria-checked="true"] .sun {
     opacity: 0;
     transform: rotate(90deg) scale(0.4);
   }
-  .toggle[data-current="dark"] .sun .rays {
-    opacity: 0;
-    transform: rotate(-90deg) scale(0.5);
-  }
-  .toggle[data-current="dark"] .sun .core {
-    transform: scale(0.6);
-  }
-  .toggle[data-current="dark"]:hover .moon {
-    transform: rotate(-15deg);
+  .switch[aria-checked="true"] .moon {
+    opacity: 1;
+    transform: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .toggle,
-    .icon,
-    .sun .core,
-    .sun .rays {
+    .switch,
+    .knob,
+    .icon {
       transition: none;
     }
   }
