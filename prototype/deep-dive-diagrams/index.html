@@ -1,0 +1,211 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway. Answers part of "Deep dive template: sections, length, and diagram authoring" (wayfinder ticket #13):
+  how should architecture diagrams be authored — hand-written SVG or Mermaid?
+  Same diagram (the WhatsApp Auto-Wish Bot's pipeline, from its README) three ways, inside a Deep dive page shell:
+    ?variant=svg       hand-written SVG, styled only with the site's color tokens
+    ?variant=mermaid   Mermaid as a typical plugin renders it (default/dark theme, the README's flowchart as-is)
+    ?variant=themed    Mermaid pushed as far as it goes: base theme fed the site's colors, simplified graph
+  ?theme=light|dark to flip (the real site follows the system). Run: open this file in a browser (Mermaid loads from a CDN).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagram Authoring Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#fff;--fg:#1d1d1f;--fg-strong:#000;--muted:#6e6e73;--line:#d2d2d7;--surface:#fff;--tile:#f5f5f7;--accent:#c94a06;--accent-soft:#fdf0e8;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace}
+:root.dark{--bg:#000;--fg:#f5f5f7;--fg-strong:#fff;--muted:#a1a1a6;--line:#38383d;--surface:#1c1c1e;--tile:#161617;--accent:#ff8a3d;--accent-soft:#2a1a10}
+body{font-family:var(--sans);background:var(--bg);color:var(--fg);line-height:1.6;-webkit-font-smoothing:antialiased;padding-bottom:140px;transition:background .3s,color .3s}
+.narrow{max-width:734px;margin:0 auto;padding:0 16px}
+.nav{border-bottom:1px solid var(--line);height:52px;display:flex;align-items:center}
+.nav .narrow{display:flex;width:100%;font-size:14px;color:var(--muted);gap:20px}
+.nav b{color:var(--fg);margin-right:auto;font-weight:600}
+.back{display:inline-block;margin:40px 0 16px;font-family:var(--mono);font-size:13px;color:var(--muted)}
+h1{font-size:clamp(34px,6vw,48px);letter-spacing:-.03em;line-height:1.08;color:var(--fg-strong)}
+.pitch{font-size:19px;color:var(--muted);margin:12px 0 20px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 22px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:13px}
+.meta span{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:6px}
+.chip{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-right:4px}
+.meta a{color:var(--accent)}
+h2{font-size:28px;letter-spacing:-.02em;margin:48px 0 12px;color:var(--fg-strong)}
+p{margin:0 0 14px}
+figure{margin:20px 0 24px;background:var(--tile);border:1px solid var(--line);border-radius:16px;padding:20px;overflow-x:auto}
+figcaption{font-size:13px;color:var(--muted);margin-top:12px;text-align:center}
+figure svg{display:block;width:100%;height:auto}
+
+/* ---- hand-written SVG: every color is a site token, so dark mode is free ---- */
+.d .node rect{fill:var(--surface);stroke:var(--line);stroke-width:1.25}
+.d .node.key rect{stroke:var(--accent);stroke-width:1.75;fill:var(--accent-soft)}
+.d .t{font:600 14px var(--sans);fill:var(--fg)}
+.d .s{font:400 11px var(--mono);fill:var(--muted)}
+.d .num{font:500 11px var(--mono);fill:var(--accent)}
+.d .flow{stroke:var(--muted);stroke-width:1.5;fill:none}
+.d .drop{stroke:var(--line);stroke-width:1.25;stroke-dasharray:4 4;fill:none}
+.d .dl{font:400 11px var(--mono);fill:var(--muted)}
+.d .rail{fill:none;stroke:var(--line);stroke-dasharray:4 4}
+.d .head{fill:var(--muted)}
+.d .head2{fill:var(--line)}
+
+.mermaid-host{min-height:200px;display:grid;place-items:center;color:var(--muted);font-size:13px}
+.mermaid-host svg{max-width:100%!important}
+
+/* ---- prototype chrome ---- */
+.bar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(720px,calc(100% - 32px));background:#111;color:#eee;border-radius:14px;padding:10px 12px;font:13px var(--sans);box-shadow:0 12px 40px rgba(0,0,0,.35);z-index:10}
+.bar .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.bar button{background:#2a2a2a;border:0;color:#eee;border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit}
+.bar button.on{background:#ff8a3d;color:#000;font-weight:600}
+.bar .sep{width:1px;height:20px;background:#444;margin:0 4px}
+.bar .note{margin-top:8px;color:#bbb;font-size:12px;line-height:1.5}
+.bar .note b{color:#fff}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="narrow"><b>dhaivat.dev</b><span>Experience</span><span>Projects ▾</span><span>Contact</span></div></nav>
+
+<main class="narrow">
+  <a class="back">← Projects</a>
+  <h1>WhatsApp Auto-Wish Bot.</h1>
+  <p class="pitch">An event-driven bot that wishes people in group chats only when a wish is really happening, and spends almost nothing on AI calls to know it.</p>
+  <div class="meta">
+    <div><span>When</span>2026</div>
+    <div><span>Stack</span><i class="chip">Node.js</i><i class="chip">Baileys</i><i class="chip">Gemini</i><i class="chip">Railway</i></div>
+    <div><span>Links</span><a>Code ↗</a></div>
+  </div>
+
+  <h2>Architecture</h2>
+  <p>WhatsApp pushes every group message to the bot over a WebSocket. Most messages are dropped by cheap local checks before anything costs money; only a real cluster of wishes reaches Gemini.</p>
+
+  <figure id="fig"></figure>
+
+  <p>Every drop happens before the next, more expensive stage, so a busy group costs the same as a quiet one until people actually start wishing someone.</p>
+</main>
+
+<template id="svg-tpl">
+<svg class="d" viewBox="0 0 720 512" role="img" aria-labelledby="dt">
+  <title id="dt">Wish pipeline: a message passes a local pre-filter, a sliding window, a Gemini check and a cooldown before a delayed reply is sent; each check can drop it.</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="head2" d="M0 0L10 5L0 10z"/></marker>
+  </defs>
+  <!-- main flow -->
+  <g class="node"><rect x="40" y="16" width="340" height="52" rx="12"/><text class="t" x="60" y="38">Group message arrives</text><text class="s" x="60" y="56">Baileys WebSocket push · no polling</text></g>
+  <g class="node"><rect x="40" y="88" width="340" height="52" rx="12"/><text class="num" x="60" y="110">01</text><text class="t" x="84" y="110">Local pre-filter</text><text class="s" x="60" y="128">regex + emoji · free, in-process</text></g>
+  <g class="node"><rect x="40" y="160" width="340" height="52" rx="12"/><text class="t" x="60" y="182">45-min sliding window</text><text class="s" x="60" y="200">needs ≥ 2 distinct wishers</text></g>
+  <g class="node key"><rect x="40" y="232" width="340" height="52" rx="12"/><text class="num" x="60" y="254">02</text><text class="t" x="84" y="254">Gemini check</text><text class="s" x="60" y="272">flash-lite · hard cap 20 calls/day</text></g>
+  <g class="node"><rect x="40" y="304" width="340" height="52" rx="12"/><text class="num" x="60" y="326">03</text><text class="t" x="84" y="326">Cooldown</text><text class="s" x="60" y="344">per group + person · 48 h</text></g>
+  <g class="node"><rect x="40" y="376" width="340" height="52" rx="12"/><text class="t" x="60" y="398">Human-like delay</text><text class="s" x="60" y="416">45–180 s · 3 s "typing…"</text></g>
+  <g class="node"><rect x="40" y="448" width="340" height="52" rx="12"/><text class="t" x="60" y="470">Send wish, DM a summary to me</text><text class="s" x="60" y="488">record cooldown</text></g>
+  <path class="flow" marker-end="url(#a)" d="M210 68V86M210 140V158M210 212V230M210 284V302M210 356V374M210 428V446"/>
+  <!-- drops -->
+  <path class="drop" marker-end="url(#b)" d="M380 114H556M380 186H556M380 258H556M380 330H556"/>
+  <text class="dl" x="396" y="108">not a wish</text>
+  <text class="dl" x="396" y="180">only 1 wisher</text>
+  <text class="dl" x="396" y="252">not genuine</text>
+  <text class="dl" x="396" y="324">wished &lt; 48 h ago</text>
+  <rect class="rail" x="560" y="88" width="140" height="268" rx="12"/>
+  <text class="t" x="630" y="214" text-anchor="middle">Ignored</text>
+  <text class="s" x="630" y="232" text-anchor="middle">no reply sent</text>
+</svg>
+</template>
+
+<script type="module">
+const q = new URLSearchParams(location.search);
+let variant = q.get('variant') || 'svg';
+let theme = q.get('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+// The README's flowchart, verbatim (what you'd paste into a ```mermaid block).
+const README = `flowchart TD
+    A["Incoming WhatsApp Message (Real-Time Baileys WebSocket Push)"] --> B{"Is Group Chat & in ALLOWED_GROUPS?"}
+    B -- No --> Z["Ignore Immediately (0 Memory / 0 API Calls)"]
+    B -- Yes --> C{"Was Message Sent by Me (fromMe)?"}
+    C -- Yes --> D["If I manually wished someone: cancel pending timer + add (groupId, person/event) to 48h cooldown"]
+    C -- No --> E["Stage 1: Local Fast Pre-Filter (looksLikeWish)"]
+    E -- Not a wish --> Z
+    E -- Matches wish keyword/emoji --> F["Add to Group 45-Min Sliding Window Buffer"]
+    F --> G{"Unique Wishers in Window >= MIN_WISHERS (2)?"}
+    G -- No --> Z
+    G -- Yes --> H["Stage 2: Gemini AI Analysis (auto-selected flash-lite model)"]
+    H --> I{"Genuine Wish for an Unwished Person/Event & Not Wishing Me?"}
+    I -- No --> Z
+    I -- Yes --> J{"Stage 3: StateStore Cooldown Check (groupId::eventKey >= 48h)"}
+    J -- Cooldown Active --> Z
+    J -- Allowed --> K["Schedule Random Human Delay (45s - 180s)"]
+    K --> L["Send 3s 'typing...' Indicator + Send Wish in Group"]
+    L --> M["Record (groupId::eventKey) in 48h Cooldown + DM Summary to 'Message Yourself'"]`;
+
+// Same content as the hand SVG, written to give Mermaid its best shot.
+const THEMED = `flowchart TD
+    A["<b>Group message arrives</b><br/><small>Baileys WebSocket push</small>"] --> B["<b>01 Local pre-filter</b><br/><small>regex + emoji · free</small>"]
+    B --> C["<b>45-min sliding window</b><br/><small>≥ 2 distinct wishers</small>"]
+    C --> D["<b>02 Gemini check</b><br/><small>flash-lite · ≤ 20 calls/day</small>"]:::key
+    D --> E["<b>03 Cooldown</b><br/><small>per group + person · 48 h</small>"]
+    E --> F["<b>Human-like delay</b><br/><small>45–180 s</small>"]
+    F --> G["<b>Send wish, DM a summary to me</b>"]
+    B -. not a wish .-> X(["Ignored"])
+    C -. only 1 wisher .-> X
+    D -. not genuine .-> X
+    E -. wished < 48 h ago .-> X
+    classDef key stroke-width:2px`;
+
+const NOTES = {
+  svg: '<b>Hand-written SVG.</b> Colors are CSS variables, so the dark-mode flip is instant with no re-render; you get exact layout control; 0 KB JS. Cost: someone (Claude) positions the boxes by hand, and an edit means nudging coordinates.',
+  mermaid: '<b>Mermaid, as a plugin renders it.</b> The README\'s flowchart pasted in unchanged, with the default/dark theme. Layout is automatic; the look is generic, and it is re-rendered (two renders at build time) to change theme. Building it into the site needs headless Chromium during the build, or about 1 MB+ of JS loaded in the browser.',
+  themed: '<b>Mermaid, styled to match.</b> The base theme fed the site\'s colors, with a simplified graph. Closer, but the layout, arrow routing and spacing are still Mermaid\'s, and the colors are baked in at render, so dark mode still needs a second render. The text source is easy to edit.'
+};
+
+let mermaid;
+async function getMermaid(){
+  if(!mermaid){ mermaid = (await import('https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs')).default; }
+  return mermaid;
+}
+const tok = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+let n = 0;
+async function render(){
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  const fig = document.getElementById('fig');
+  if(variant === 'svg'){
+    fig.innerHTML = '';
+    fig.append(document.getElementById('svg-tpl').content.cloneNode(true));
+  } else {
+    fig.innerHTML = '<div class="mermaid-host">loading Mermaid…</div>';
+    const m = await getMermaid();
+    const cfg = variant === 'mermaid'
+      ? { startOnLoad:false, theme: theme === 'dark' ? 'dark' : 'default' }
+      : { startOnLoad:false, theme:'base', fontFamily:'Inter, sans-serif', flowchart:{curve:'basis', padding:14},
+          themeVariables:{ background:tok('--tile'), primaryColor:tok('--surface'), primaryTextColor:tok('--fg'),
+            primaryBorderColor:tok('--line'), lineColor:tok('--muted'), secondaryColor:tok('--tile'), tertiaryColor:tok('--tile'),
+            edgeLabelBackground:tok('--tile'), fontSize:'14px' } };
+    m.initialize(cfg);
+    let src = variant === 'mermaid' ? README : THEMED.replace('classDef key stroke-width:2px', `classDef key stroke:${tok('--accent')},fill:${tok('--accent-soft')},stroke-width:2px`);
+    const { svg } = await m.render('m' + (++n), src);
+    fig.innerHTML = '<div class="mermaid-host">' + svg + '</div>';
+  }
+  const cap = document.createElement('figcaption');
+  cap.textContent = 'Every check drops the message before the next, more expensive one runs.';
+  fig.append(cap);
+  document.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === variant));
+  document.querySelectorAll('[data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === theme));
+  document.getElementById('note').innerHTML = NOTES[variant];
+  history.replaceState(null, '', `?variant=${variant}&theme=${theme}`);
+}
+
+document.body.insertAdjacentHTML('beforeend', `<div class="bar"><div class="row">
+  <button data-v="svg">Hand SVG</button><button data-v="mermaid">Mermaid (default)</button><button data-v="themed">Mermaid (styled)</button>
+  <span class="sep"></span><button data-t="light">Light</button><button data-t="dark">Dark</button></div>
+  <div class="note" id="note"></div></div>`);
+document.querySelector('.bar').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.dataset.v) variant = b.dataset.v;
+  if(b.dataset.t) theme = b.dataset.t;
+  render();
+});
+render();
+</script>
+</body>
+</html>
