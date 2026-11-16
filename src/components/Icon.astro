@@ -1,0 +1,22 @@
+---
+/**
+ * One icon from the shared icon set (Lucide), as inline SVG: no JS, and it
+ * takes its color from the surrounding text.
+ */
+import { iconSvgBody } from "../icons";
+
+interface Props {
+  name: string;
+}
+
+const { name } = Astro.props;
+---
+
+<svg
+  viewBox="0 0 24 24"
+  width="24"
+  height="24"
+  aria-hidden="true"
+  focusable="false"
+  set:html={iconSvgBody(name)}
+/>
