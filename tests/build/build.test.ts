@@ -134,3 +134,95 @@ describe("Draft Personal projects", () => {
     expect(build.page("/projects/published")).toContain("Published Project");
   });
 });
+
+describe("the Deep dive h2 spine", () => {
+  // The pass case is the `valid` fixture: every project there has exactly
+  // Problem, Architecture, Approach, Results, What I learned.
+
+  test("h2s in the wrong order fail the build, naming the project and the expected spine", () => {
+    const { status, output } = buildWithFixture("spine-reordered");
+    expect(status).not.toBe(0);
+    expect(output).toContain('"project"');
+    expect(output).toContain("Problem, Architecture, Approach, Results, What I learned");
+    expect(output).toContain("found Problem, Approach, Architecture, Results, What I learned");
+  });
+
+  test.each([
+    ["missing", "spine-missing", "found Problem, Architecture, Approach, What I learned."],
+    ["extra", "spine-extra", "found Problem, Architecture, Approach, Results, What I learned, Credits."],
+    ["renamed", "spine-renamed", "found Problem, Design, Approach, Results, What I learned."],
+  ])("a %s h2 fails the build, naming the project and what it found", (_, fixture, found) => {
+    const { status, output } = buildWithFixture(fixture);
+    expect(status).not.toBe(0);
+    expect(output).toContain('"project"');
+    expect(output).toContain("expected Problem, Architecture, Approach, Results, What I learned");
+    expect(output).toContain(found);
+  });
+});
+
+describe("the Deep dive word count", () => {
+  test("outside 800–1,500 words prints a warning naming the project, and the build still passes", () => {
+    const { status, output } = buildWithFixture("word-count");
+    expect(status).toBe(0);
+    // short: 7 words of headings and 5 one-word paragraphs.
+    expect(output).toMatch(/Warning: Personal project "short" has 12 words; a Deep dive should run 800–1,500 words\./);
+    // in-range has 1,007 words.
+    expect(output).not.toContain('"in-range" has');
+  });
+});
+
+/** The text of a built page with tags removed and whitespace collapsed. */
+function text(html: string): string {
+  return html.replace(/<(script|style)[\s\S]*?<\/\1>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+}
+
+/** The [href, text] links inside the element with the given aria-label. */
+function linksIn(html: string, label: string): [string, string][] {
+  const block = html.match(new RegExp(`aria-label="${label}"[^>]*>([\\s\\S]*?)</nav>`))?.[1] ?? "";
+  return [...block.matchAll(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map((m) => [m[1], text(m[2]).trim()]);
+}
+
+describe("a Deep dive page", () => {
+  test("shows the meta strip, with Built on only when set", () => {
+    const build = buildWithFixture("valid");
+    expect(build.status).toBe(0);
+
+    const full = text(build.page("/projects/full")!);
+    expect(full).toContain("When Spring 2024");
+    expect(full).toContain("Stack TypeScript Astro");
+    expect(full).toContain("Built on Upstream Thing by someone");
+    expect(build.page("/projects/full")).toContain('href="https://github.com/someone/upstream-thing"');
+    expect(full).toContain("Links Code ↗ Play level one ↗");
+    expect(build.page("/projects/full")).toContain('href="https://example.itch.io/full"');
+
+    const minimal = text(build.page("/projects/minimal")!);
+    expect(minimal).toContain("When 2023");
+    expect(minimal).not.toContain("Built on");
+    expect(minimal).toContain("Links Code ↗");
+    expect(minimal).not.toContain("Play");
+  });
+
+  test("lists the five h2s in its table of contents, linking to each section", () => {
+    const html = buildWithFixture("valid").page("/projects/full")!;
+    const toc = linksIn(html, "On this page");
+    expect(toc).toEqual([
+      ["#problem", "Problem"],
+      ["#architecture", "Architecture"],
+      ["#approach", "Approach"],
+      ["#results", "Results"],
+      ["#what-i-learned", "What I learned"],
+    ]);
+    for (const [href] of toc) expect(html).toMatch(new RegExp(`<h2 id="${href.slice(1)}"`));
+  });
+
+  test("links to the previous and next projects in order, with none before the first or after the last", () => {
+    const build = buildWithFixture("valid");
+    // minimal is order 10, full is order 20.
+    expect(linksIn(build.page("/projects/minimal")!, "More projects")).toEqual([
+      ["/projects/full", "Next Full Project A pitch that is exactly one hundred and twenty characters long, to show the limit is inclusive and passes the build: ok."],
+    ]);
+    expect(linksIn(build.page("/projects/full")!, "More projects")).toEqual([
+      ["/projects/minimal", "Previous Minimal Project Only the required fields."],
+    ]);
+  });
+});
