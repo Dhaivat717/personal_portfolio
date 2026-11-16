@@ -150,6 +150,20 @@ test.describe("at phone width", () => {
     await expect(page).toHaveURL(/\/projects\/whatsapp-auto-wish-bot$/);
   });
 
+  test("closing the menu folds the projects list, so it reopens collapsed", async ({ page }) => {
+    await page.goto("/");
+    const nav = mainNav(page);
+    const menu = nav.getByRole("button", { name: "Menu" });
+    const projects = nav.getByRole("button", { name: "Projects" });
+    await menu.click();
+    await projects.click();
+    await expect(projects).toHaveAttribute("aria-expanded", "true");
+    await menu.click();
+    await expect(menu).toHaveAttribute("aria-expanded", "false");
+    await menu.click();
+    await expect(projects).toHaveAttribute("aria-expanded", "false");
+  });
+
   test("the Dark mode switch stays in the bar next to the menu button, one tap away", async ({ page }) => {
     await page.goto("/");
     const nav = mainNav(page);
@@ -244,6 +258,23 @@ test.describe("the Projects drop-down", () => {
     await expect(button).toHaveAttribute("aria-expanded", "true");
     await page.mouse.move(5, 600);
     await expect(button).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("a hover-opened drop-down stays open once keyboard focus moves into it, even after the pointer leaves", async ({ page }) => {
+    await page.goto("/");
+    const nav = mainNav(page);
+    const button = nav.getByRole("button", { name: "Projects" });
+    const project = nav.getByRole("link", { name: "WhatsApp Auto-Wish Bot" });
+    await nav.getByRole("link", { name: "Experience" }).focus();
+    await button.hover();
+    await expect(button).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await expect(project).toBeFocused();
+    await page.mouse.move(5, 600);
+    await page.waitForTimeout(400);
+    await expect(button).toHaveAttribute("aria-expanded", "true");
+    await expect(project).toBeFocused();
   });
 
   test("when open, Tab moves from the button through each project and All projects → to Contact, closing it", async ({ page }) => {

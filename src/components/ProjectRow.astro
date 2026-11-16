@@ -4,7 +4,7 @@
  * stack chips and "read →". The whole row links to the project's Deep dive.
  * Used on /projects.
  */
-import type { Project } from "../projects";
+import { projectHref, type Project } from "../projects";
 import Icon from "./Icon.astro";
 
 interface Props {
@@ -15,7 +15,7 @@ const { project } = Astro.props;
 const { title, pitch, stack, icon } = project.data;
 ---
 
-<a class="row" href={`/projects/${project.id}`}>
+<a class="row" href={projectHref(project)}>
   <span class="tile"><Icon name={icon} /></span>
   <span class="body">
     <h2 class="name">{title}</h2>

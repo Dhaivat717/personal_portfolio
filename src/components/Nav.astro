@@ -4,7 +4,8 @@
  * switch. Section links always point to Home page anchors, so they work the
  * same from any page.
  *
- * Projects ▾ is a button (with JS) that opens a drop-down of Deep dives, lowest
+ * Projects ▾ is a button (with JS) that opens a drop-down of Personal projects
+ * (each linking to its Deep dive), lowest
  * `order` first, capped at 8, with the current one marked, always ending with
  * "All projects →". Without JS it is a plain link to /projects.
  *
@@ -12,7 +13,7 @@
  * button; the Dark mode switch stays in the bar beside it. Without JS there is
  * no menu button and every link stays visible.
  */
-import { getProjects } from "../projects";
+import { getProjects, projectHref } from "../projects";
 import { site } from "../settings";
 import ThemeToggle from "./ThemeToggle.astro";
 
@@ -48,8 +49,8 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
               projects.map((project) => (
                 <li>
                   <a
-                    href={`/projects/${project.id}`}
-                    aria-current={currentPath === `/projects/${project.id}` ? "page" : undefined}
+                    href={projectHref(project)}
+                    aria-current={currentPath === projectHref(project) ? "page" : undefined}
                   >
                     {project.data.title}
                   </a>
@@ -132,6 +133,11 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
         projects.setOpen(false);
       }, 200);
     });
+    // Keyboard focus moving in pins a hover-opened drop-down, so the pointer
+    // leaving can't hide the link that has focus.
+    projectsItem.addEventListener("focusin", (e) => {
+      if ((e.target as Element).matches(":focus-visible")) openedByHover = false;
+    });
     projectsItem.addEventListener("focusout", (e) => {
       const next = e.relatedTarget as Node | null;
       if (next && !projectsItem.contains(next)) projects.setOpen(false);
@@ -145,10 +151,10 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
   // and returns focus to the button that opened it.
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
-    const open = [projects, menu].find((d) => d?.isOpen());
-    if (!open) return;
-    open.setOpen(false);
-    open.button.focus();
+    const innermost = [projects, menu].find((d) => d?.isOpen());
+    if (!innermost) return;
+    innermost.setOpen(false);
+    innermost.button.focus();
   });
 </script>
 
