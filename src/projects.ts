@@ -18,6 +18,11 @@ export async function getProjects(): Promise<Project[]> {
   return all.filter((p) => includeDrafts || !p.data.draft).sort((a, b) => a.data.order - b.data.order);
 }
 
+/** Where a Personal project's Deep dive lives. */
+export function projectHref(project: Project): string {
+  return `/projects/${project.id}`;
+}
+
 /**
  * Drafts render on previews and in local dev. `SITE_ENV=production` (the Pages
  * Production environment) hides them, and `SHOW_DRAFTS=false` forces them off
