@@ -1,19 +1,27 @@
 ---
 /**
- * The site nav: name · Section links · Résumé · Dark mode switch. Section
- * links always point to Home page anchors, so they work the same from any page.
+ * The site nav: name · Experience · Projects ▾ · Contact · Résumé · Dark mode
+ * switch. Section links always point to Home page anchors, so they work the
+ * same from any page.
+ *
+ * Projects ▾ is a button (with JS) that opens a drop-down of Deep dives, lowest
+ * `order` first, capped at 8, with the current one marked, always ending with
+ * "All projects →". Without JS it is a plain link to /projects.
  *
  * At phone width (with JS) the links and Résumé collapse into a menu behind a
  * button; the Dark mode switch stays in the bar beside it. Without JS there is
  * no menu button and every link stays visible.
  */
+import { getProjects } from "../projects";
 import { site } from "../settings";
 import ThemeToggle from "./ThemeToggle.astro";
 
-const sections = [
-  { label: "Experience", href: "/#experience" },
-  { label: "Contact", href: "/#contact" },
-];
+/** The drop-down lists at most this many projects; "All projects →" covers the rest. */
+const MAX_NAV_PROJECTS = 8;
+const projects = (await getProjects()).slice(0, MAX_NAV_PROJECTS);
+// The built page's path ends in ".html" (build.format "file"); dev's doesn't.
+const currentPath = Astro.url.pathname.replace(/\.html$/, "");
+
 const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
 ---
 
@@ -28,13 +36,30 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
     </button>
     <div class="menu" id="nav-menu">
       <ul class="links">
-        {
-          sections.map((section) => (
-            <li>
-              <a href={section.href}>{section.label}</a>
-            </li>
-          ))
-        }
+        <li><a href="/#experience">Experience</a></li>
+        <li class="projects" data-projects>
+          <a class="projects-link" href="/projects">Projects</a>
+          <button class="projects-btn" type="button" aria-expanded="false" aria-controls="nav-projects" data-projects-button>
+            Projects
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"></path></svg>
+          </button>
+          <ul class="dropdown" id="nav-projects">
+            {
+              projects.map((project) => (
+                <li>
+                  <a
+                    href={`/projects/${project.id}`}
+                    aria-current={currentPath === `/projects/${project.id}` ? "page" : undefined}
+                  >
+                    {project.data.title}
+                  </a>
+                </li>
+              ))
+            }
+            <li><a class="all" href="/projects">All projects →</a></li>
+          </ul>
+        </li>
+        <li><a href="/#contact">Contact</a></li>
       </ul>
       <a class="resume" href="/resume.pdf" download={resumeDownloadName} title="Download résumé (PDF)">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-download-icon>
@@ -56,28 +81,75 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
     markScrolled();
   }
 
-  // Phone menu: toggled by the button; Esc, a link or a click outside closes it.
-  const button = document.querySelector<HTMLButtonElement>("[data-menu-button]");
-  const menu = document.getElementById("nav-menu");
-  if (button && menu) {
-    const setOpen = (open: boolean) => button.setAttribute("aria-expanded", String(open));
-    const isOpen = () => button.getAttribute("aria-expanded") === "true";
+  /** A button whose aria-expanded drives what CSS shows. */
+  const disclosure = (button: HTMLButtonElement) => ({
+    button,
+    isOpen: () => button.getAttribute("aria-expanded") === "true",
+    setOpen: (open: boolean) => button.setAttribute("aria-expanded", String(open)),
+  });
 
-    button.addEventListener("click", () => setOpen(!isOpen()));
-    menu.addEventListener("click", (e) => {
-      if ((e.target as Element).closest("a")) setOpen(false);
-    });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && isOpen()) {
-        setOpen(false);
-        button.focus();
-      }
+  const menuButton = document.querySelector<HTMLButtonElement>("[data-menu-button]");
+  const menuPanel = document.getElementById("nav-menu");
+  const projectsButton = document.querySelector<HTMLButtonElement>("[data-projects-button]");
+  const projectsItem = document.querySelector<HTMLElement>("[data-projects]");
+  const menu = menuButton && disclosure(menuButton);
+  const projects = projectsButton && disclosure(projectsButton);
+
+  // Phone menu: toggled by its button; a link or a click outside closes it.
+  if (menu && menuPanel) {
+    menu.button.addEventListener("click", () => menu.setOpen(!menu.isOpen()));
+    menuPanel.addEventListener("click", (e) => {
+      if ((e.target as Element).closest("a")) menu.setOpen(false);
     });
     document.addEventListener("click", (e) => {
       const target = e.target as Node;
-      if (isOpen() && !menu.contains(target) && !button.contains(target)) setOpen(false);
+      if (menu.isOpen() && !menuPanel.contains(target) && !menu.button.contains(target)) menu.setOpen(false);
     });
   }
+
+  // Projects drop-down: click, Enter or Space toggles it; on desktop, hovering
+  // opens it too. Focus or a click leaving it closes it.
+  if (projects && projectsItem) {
+    const desktopHover = window.matchMedia("(hover: hover) and (min-width: 721px)");
+    let openedByHover = false;
+    let closeTimer: number | undefined;
+
+    projects.button.addEventListener("click", () => {
+      // A click on a hover-opened drop-down keeps it open rather than closing it.
+      projects.setOpen((openedByHover && projects.isOpen()) || !projects.isOpen());
+      openedByHover = false;
+    });
+    projectsItem.addEventListener("mouseenter", () => {
+      window.clearTimeout(closeTimer);
+      if (!desktopHover.matches || projects.isOpen()) return;
+      openedByHover = true;
+      projects.setOpen(true);
+    });
+    projectsItem.addEventListener("mouseleave", () => {
+      if (!openedByHover) return;
+      closeTimer = window.setTimeout(() => {
+        openedByHover = false;
+        projects.setOpen(false);
+      }, 200);
+    });
+    projectsItem.addEventListener("focusout", (e) => {
+      const next = e.relatedTarget as Node | null;
+      if (next && !projectsItem.contains(next)) projects.setOpen(false);
+    });
+    document.addEventListener("click", (e) => {
+      if (projects.isOpen() && !projectsItem.contains(e.target as Node)) projects.setOpen(false);
+    });
+  }
+
+  // Esc closes the innermost open thing (the drop-down, then the phone menu)
+  // and returns focus to the button that opened it.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const open = [projects, menu].find((d) => d?.isOpen());
+    if (!open) return;
+    open.setOpen(false);
+    open.button.focus();
+  });
 </script>
 
 <style>
@@ -122,13 +194,111 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
     list-style: none;
     font-size: 14px;
   }
-  .links a {
+  .links > li > a,
+  .projects-btn {
     color: var(--muted);
     text-decoration: none;
     transition: color var(--dur) var(--ease);
   }
-  .links a:hover {
+  .links > li > a:hover,
+  .projects-btn:hover,
+  .projects-btn[aria-expanded="true"] {
     color: var(--fg);
+  }
+
+  /*
+   * Projects ▾: without JS, a plain link to /projects. With JS, a button that
+   * opens a drop-down panel under it.
+   */
+  .projects {
+    position: relative;
+  }
+  .projects-btn,
+  .dropdown {
+    display: none;
+  }
+  :global(html.js) .projects-link {
+    display: none;
+  }
+  :global(html.js) .projects-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+    transition: color var(--dur) var(--ease);
+  }
+  .projects-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform var(--dur) var(--ease);
+  }
+  .projects-btn[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+  :global(html.js) .projects-btn[aria-expanded="true"] + .dropdown {
+    display: block;
+  }
+  .dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    left: -12px;
+    min-width: 240px;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: 0 12px 32px var(--shadow);
+  }
+  /* Bridges the gap under the button, so hover survives the trip down. */
+  .dropdown::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 14px;
+  }
+  .dropdown a {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: var(--fg);
+    text-decoration: none;
+  }
+  .dropdown a:hover {
+    background: var(--hover);
+  }
+  .dropdown a[aria-current="page"] {
+    color: var(--accent);
+    font-weight: 500;
+  }
+  /* A dot, not text: aria-current already tells screen readers. */
+  .dropdown a[aria-current="page"]::after {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    vertical-align: middle;
+  }
+  .dropdown .all {
+    margin-top: 4px;
+    border-top: 1px solid var(--line);
+    border-radius: 0 0 8px 8px;
+    color: var(--accent);
   }
   .resume {
     display: inline-flex;
@@ -196,9 +366,23 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
     .bar {
       gap: 12px;
     }
-    /* Without JS the links simply stay in the bar. */
+    /* Without JS the links simply stay in the bar, on a second row. */
+    .brand {
+      white-space: nowrap;
+    }
     .links {
       gap: 16px;
+    }
+    :global(html:not(.js)) .bar {
+      flex-wrap: wrap;
+      row-gap: 4px;
+      height: auto;
+      min-height: var(--nav-h);
+      padding-block: 10px;
+    }
+    :global(html:not(.js)) .menu {
+      flex-basis: 100%;
+      justify-content: space-between;
     }
     .menu .resume {
       padding: 6px 12px;
@@ -228,10 +412,36 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
       gap: 0;
       font-size: 17px;
     }
-    :global(html.js) .links a {
-      display: block;
+    :global(html.js) .links > li > a:not(.projects-link),
+    :global(html.js) .projects-btn {
+      display: flex;
+      width: 100%;
       padding: 10px 0;
       color: var(--fg);
+    }
+    :global(html.js) .projects-btn {
+      justify-content: space-between;
+    }
+    /* Inside the phone menu, projects expand in place as an indented list. */
+    :global(html.js) .dropdown {
+      position: static;
+      min-width: 0;
+      padding: 0 0 6px 14px;
+      border: 0;
+      border-radius: 0;
+      background: none;
+      box-shadow: none;
+      font-size: 15px;
+    }
+    .dropdown::before {
+      content: none;
+    }
+    .dropdown a {
+      padding: 8px 0;
+    }
+    .dropdown .all {
+      margin-top: 0;
+      border-top: 0;
     }
     :global(html.js) .menu .resume {
       justify-content: center;
@@ -244,6 +454,8 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
   @media (prefers-reduced-motion: reduce) {
     .nav,
     .links a,
+    .projects-btn,
+    .projects-btn svg,
     .resume,
     .menu-btn line {
       transition: none;

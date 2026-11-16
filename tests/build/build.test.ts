@@ -39,6 +39,39 @@ describe("Personal projects", () => {
   });
 });
 
+/** The nav's Projects drop-down entries on a built page, in order, as [href, text]. */
+function navProjects(html: string | null): [string, string][] {
+  const list = html?.match(/id="nav-projects"[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? "";
+  return [...list.matchAll(/<a[^>]*href="([^"]+)"[^>]*>\s*([^<]*?)\s*<\/a>/g)].map((m) => [m[1], m[2]]);
+}
+
+describe("the nav's Projects drop-down", () => {
+  test("lists at most 8 projects, lowest order first, then All projects →", () => {
+    const build = buildWithFixture("many");
+    expect(build.status).toBe(0);
+    // p10 has the lowest order (90) and p01 the highest (99).
+    const expected: [string, string][] = ["10", "09", "08", "07", "06", "05", "04", "03"].map((n) => [
+      `/projects/p${n}`,
+      `Project ${n}`,
+    ]);
+    expected.push(["/projects", "All projects →"]);
+    for (const route of ["/", "/projects", "/projects/p01"]) {
+      expect(navProjects(build.page(route))).toEqual(expected);
+    }
+  });
+
+  test("includes drafts only when drafts are shown", () => {
+    const shown = buildWithFixture("drafts", { env: { SITE_ENV: undefined, SHOW_DRAFTS: undefined } });
+    expect(navProjects(shown.page("/"))).toContainEqual(["/projects/wip", "Work In Progress"]);
+
+    const hidden = buildWithFixture("drafts", { env: { SITE_ENV: "production", SHOW_DRAFTS: undefined } });
+    expect(navProjects(hidden.page("/"))).toEqual([
+      ["/projects/published", "Published Project"],
+      ["/projects", "All projects →"],
+    ]);
+  });
+});
+
 describe("Personal project schema", () => {
   // The pass case for each rule is the `valid` fixture: `full` uses every
   // field, `minimal` omits every optional one, `full`'s pitch is exactly 120
