@@ -1,44 +1,126 @@
 ---
 /**
- * A Personal project's Deep dive. For now: title, pitch and the MDX body.
- * The meta strip, media, table of contents and prev/next cards come later.
+ * A Personal project's Deep dive: summary (title, pitch, meta strip, main
+ * media), then the MDX body, whose h2s must be the spine (see deepDive.ts).
+ * A sticky table of contents lists those h2s; previous/next cards follow `order`.
  */
 import type { GetStaticPaths } from "astro";
 import { render } from "astro:content";
+import MetaStrip from "../../components/MetaStrip.astro";
+import { spineHeadings, warnOnWordCount } from "../../deepDive";
 import Base from "../../layouts/Base.astro";
-import { getProjects, type Project } from "../../projects";
+import { getProjects, projectHref, type Project } from "../../projects";
 import { site } from "../../settings";
 
 export const getStaticPaths = (async () => {
   const projects = await getProjects();
-  return projects.map((project) => ({ params: { slug: project.id }, props: { project } }));
+  return projects.map((project, i) => ({
+    params: { slug: project.id },
+    props: { project, previous: projects[i - 1], next: projects[i + 1] },
+  }));
 }) satisfies GetStaticPaths;
 
 interface Props {
   project: Project;
+  previous?: Project;
+  next?: Project;
 }
 
-const { project } = Astro.props;
-const { title, pitch } = project.data;
-const { Content } = await render(project);
+const { project, previous, next } = Astro.props;
+const { title, pitch, media } = project.data;
+const { Content, headings } = await render(project);
+const toc = spineHeadings(project, headings);
+warnOnWordCount(project);
+
+const pager = [
+  previous && { rel: "prev", label: "Previous", project: previous },
+  next && { rel: "next", label: "Next", project: next },
+].filter((card) => !!card);
 ---
 
 <Base title={`${title} · ${site.name}`} description={pitch}>
-  <article class="narrow deep-dive">
-    <a class="back" href="/projects">← Projects</a>
-    <h1>{title}</h1>
-    <p class="pitch">{pitch}</p>
-    <div class="prose">
+  <div class="wrap deep-dive">
+    <header class="summary">
+      <a class="back" href="/projects">← Projects</a>
+      <h1>{title}</h1>
+      <p class="pitch">{pitch}</p>
+      <MetaStrip project={project} />
+      {/* Main media slot. The Media component (clips, posters, pause button) replaces this. */}
+      <figure class="media">
+        <div class="frame" role="img" aria-label={media.alt}></div>
+        <figcaption>{media.caption}</figcaption>
+      </figure>
+    </header>
+
+    <nav class="toc" aria-label="On this page">
+      <p class="toc-title" aria-hidden="true">On this page</p>
+      <ol>
+        {
+          toc.map((h) => (
+            <li>
+              <a href={`#${h.slug}`}>{h.text}</a>
+            </li>
+          ))
+        }
+      </ol>
+    </nav>
+
+    <article class="prose">
       <Content />
-    </div>
-  </article>
+    </article>
+
+    {
+      pager.length > 0 && (
+        <nav class="pager" aria-label="More projects">
+          {pager.map((card) => (
+            <a class:list={["card", card.rel]} href={projectHref(card.project)} rel={card.rel}>
+              <span class="dir">{card.label}</span>
+              <span class="name">{card.project.data.title}</span>
+              <span class="card-pitch">{card.project.data.pitch}</span>
+            </a>
+          ))}
+        </nav>
+      )
+    }
+  </div>
 </Base>
 
 <style>
   .deep-dive {
+    display: grid;
+    grid-template-columns: minmax(0, var(--narrow));
+    grid-template-areas: "summary" "toc" "body" "pager";
+    justify-content: center;
+    column-gap: 56px;
     padding-top: 48px;
     padding-bottom: 72px;
   }
+  .summary {
+    grid-area: summary;
+  }
+  .toc {
+    grid-area: toc;
+  }
+  .prose {
+    grid-area: body;
+  }
+  .pager {
+    grid-area: pager;
+  }
+  @media (min-width: 1000px) {
+    .deep-dive {
+      grid-template-columns: minmax(0, var(--narrow)) 200px;
+      grid-template-areas: "summary toc" "body toc" "pager toc";
+    }
+    .toc {
+      align-self: start;
+      position: sticky;
+      top: calc(var(--nav-h) + 32px);
+      margin-top: 0;
+      padding-top: 6px;
+    }
+  }
+
   .back {
     display: inline-block;
     margin-bottom: 24px;
@@ -63,8 +145,141 @@ const { Content } = await render(project);
     line-height: 1.4;
     color: var(--muted);
   }
-  .prose {
+
+  .media {
+    margin: 32px 0 0;
+  }
+  .frame {
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--hover);
+  }
+  figcaption {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .toc {
     margin-top: 40px;
+    font-size: 14px;
+  }
+  .toc-title {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .toc ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-left: 1px solid var(--line);
+  }
+  .toc a {
+    display: block;
+    padding: 5px 0 5px 14px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .toc a:hover,
+  .toc a:focus-visible {
+    color: var(--accent);
+  }
+
+  .prose {
+    margin-top: 8px;
     font-size: 17px;
+  }
+  .prose :global(h2) {
+    margin: 56px 0 0;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--fg-strong);
+    scroll-margin-top: calc(var(--nav-h) + 24px);
+  }
+  .prose :global(h3) {
+    margin: 32px 0 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--fg-strong);
+    scroll-margin-top: calc(var(--nav-h) + 24px);
+  }
+  .prose :global(p),
+  .prose :global(ul),
+  .prose :global(ol) {
+    margin: 16px 0 0;
+  }
+  .prose :global(a) {
+    color: var(--accent);
+  }
+  .prose :global(:not(pre) > code) {
+    font: 0.88em var(--mono);
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--hover);
+  }
+  /* Code excerpts: always dark (Shiki's github-dark), in both themes. */
+  .prose :global(pre) {
+    margin: 20px 0 0;
+    padding: 18px 20px;
+    border-radius: 12px;
+    font: 14px/1.6 var(--mono);
+    overflow-x: auto;
+  }
+
+  .pager {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 72px;
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 20px 22px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    color: inherit;
+    text-decoration: none;
+    transition: background-color var(--dur) var(--ease);
+  }
+  .card:hover {
+    background: var(--hover);
+  }
+  .card.next {
+    grid-column: -2;
+    text-align: right;
+  }
+  .dir {
+    font: 12px var(--mono);
+    color: var(--muted);
+  }
+  .prev .dir::before {
+    content: "← ";
+  }
+  .next .dir::after {
+    content: " →";
+  }
+  .name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--fg-strong);
+  }
+  .card-pitch {
+    font-size: 15px;
+    color: var(--muted);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card {
+      transition: none;
+    }
   }
 </style>

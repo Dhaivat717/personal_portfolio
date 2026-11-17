@@ -1,0 +1,80 @@
+---
+/**
+ * A Deep dive's meta strip: When · Stack · Built on (only if set) · Links.
+ * No role line and no read time.
+ */
+import type { Project } from "../projects";
+import StackChips from "./StackChips.astro";
+
+interface Props {
+  project: Project;
+}
+
+const { when, stack, builtOn, links } = Astro.props.project.data;
+---
+
+<dl class="meta">
+  <div>
+    <dt>When</dt>
+    <dd>{when}</dd>
+  </div>
+  <div>
+    <dt>Stack</dt>
+    <dd>
+      <StackChips stack={stack} />
+    </dd>
+  </div>
+  {
+    builtOn && (
+      <div>
+        <dt>Built on</dt>
+        <dd>
+          <a href={builtOn.url}>{builtOn.name}</a> by {builtOn.author}
+        </dd>
+      </div>
+    )
+  }
+  <div>
+    <dt>Links</dt>
+    <dd class="links">
+      <a href={links.code}>Code ↗</a>
+      {links.play?.map((play) => <a href={play.url}>{play.label} ↗</a>)}
+    </dd>
+  </div>
+</dl>
+
+<style>
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 40px;
+    margin: 28px 0 0;
+    padding: 18px 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    font-size: 15px;
+  }
+  dt {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  dd {
+    margin: 4px 0 0;
+    color: var(--fg-strong);
+  }
+  a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+  }
+</style>

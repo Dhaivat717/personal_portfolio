@@ -6,6 +6,7 @@
  */
 import { projectHref, type Project } from "../projects";
 import Icon from "./Icon.astro";
+import StackChips from "./StackChips.astro";
 
 interface Props {
   project: Project;
@@ -20,9 +21,7 @@ const { title, pitch, stack, icon } = project.data;
   <span class="body">
     <h2 class="name">{title}</h2>
     <p class="pitch">{pitch}</p>
-    <ul class="stack" aria-label="Stack">
-      {stack.map((item) => <li>{item}</li>)}
-    </ul>
+    <StackChips stack={stack} class="stack" />
   </span>
   <span class="go" aria-hidden="true">read →</span>
 </a>
@@ -65,20 +64,8 @@ const { title, pitch, stack, icon } = project.data;
     font-size: 15px;
     color: var(--muted);
   }
-  .stack {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 8px 0 0;
-    padding: 0;
-    list-style: none;
-  }
-  .stack li {
-    font: 12px var(--mono);
-    color: var(--muted);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    padding: 3px 8px;
+  .row :global(.stack) {
+    margin-top: 8px;
   }
   .go {
     font: 13px var(--mono);
