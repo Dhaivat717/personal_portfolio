@@ -1,0 +1,39 @@
+---
+/**
+ * The bot's message pipeline, from the throwaway prototype (placeholder until
+ * the Deep dive is written). Upstream: WhatsApp via Baileys. Accent: the one
+ * stage that costs money.
+ */
+import { Arrow, Box, Diagram, Group } from "../../../components/diagram";
+
+const x = 40;
+const width = 340;
+const mid = x + width / 2;
+const height = 52;
+const sinkX = 560;
+const rows = [16, 88, 160, 232, 304, 376, 448];
+const drops = [
+  { row: 1, label: "not a wish" },
+  { row: 2, label: "only 1 wisher" },
+  { row: 3, label: "not genuine" },
+  { row: 4, label: "wished < 48 h ago" },
+];
+---
+
+<Diagram
+  title="Wish pipeline: a group message passes a local pre-filter, a sliding window, a Gemini check and a cooldown before a delayed reply is sent; each check can drop it."
+  width={720}
+  height={512}
+  caption="Every check drops the message before the next, more expensive one runs."
+>
+  <Group x={sinkX} y={88} width={140} height={268} label="Ignored" detail="no reply sent" center />
+  <Box x={x} y={rows[0]} width={width} height={height} label="Group message arrives" detail="Baileys WebSocket push · no polling" tone="upstream" />
+  <Box x={x} y={rows[1]} width={width} height={height} step="01" label="Local pre-filter" detail="regex + emoji · free, in-process" />
+  <Box x={x} y={rows[2]} width={width} height={height} label="45-min sliding window" detail="needs ≥ 2 distinct wishers" />
+  <Box x={x} y={rows[3]} width={width} height={height} step="02" label="Gemini check" detail="flash-lite · hard cap 20 calls/day" tone="accent" />
+  <Box x={x} y={rows[4]} width={width} height={height} step="03" label="Cooldown" detail="per group + person · 48 h" />
+  <Box x={x} y={rows[5]} width={width} height={height} label="Human-like delay" detail="45–180 s · 3 s “typing…”" />
+  <Box x={x} y={rows[6]} width={width} height={height} label="Send wish, DM a summary to me" detail="record cooldown" />
+  {rows.slice(1).map((y) => <Arrow points={[[mid, y - 20], [mid, y]]} />)}
+  {drops.map(({ row, label }) => <Arrow points={[[x + width, rows[row] + height / 2], [sinkX, rows[row] + height / 2]]} label={label} branch />)}
+</Diagram>

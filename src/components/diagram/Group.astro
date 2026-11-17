@@ -1,0 +1,68 @@
+---
+/**
+ * A dashed boundary around related parts (a service, a process, "upstream"),
+ * or a sink that branches end in ("Ignored"). Its label sits at the top left,
+ * or in the middle with `center`. Draw it before the parts it encloses, so
+ * they sit on top.
+ */
+import type { Tone } from "./kit";
+
+interface Props {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label?: string;
+  detail?: string;
+  center?: boolean;
+  tone?: Tone;
+}
+
+const { x, y, width, height, label, detail, center = false, tone = "default" } = Astro.props;
+const [tx, anchor] = center ? [x + width / 2, "middle"] : [x + 16, "start"];
+const ty = center ? y + height / 2 + (detail ? -2 : 5) : y + 24;
+---
+
+<g class:list={["group", tone]}>
+  <rect x={x} y={y} width={width} height={height} rx="12" />
+  {
+    label && (
+      <text class="label" x={tx} y={ty} text-anchor={anchor}>
+        {label}
+      </text>
+    )
+  }
+  {
+    detail && (
+      <text class="detail" x={tx} y={ty + 18} text-anchor={anchor}>
+        {detail}
+      </text>
+    )
+  }
+</g>
+
+<style>
+  rect {
+    fill: none;
+    stroke: var(--stroke);
+    stroke-width: 1.25;
+    stroke-dasharray: 4 4;
+  }
+  .label {
+    font: 600 14px var(--sans);
+    fill: var(--fg);
+  }
+  .detail {
+    font: 400 11px var(--mono);
+    fill: var(--muted);
+  }
+  .accent rect {
+    stroke: var(--accent);
+  }
+  .accent .label {
+    fill: var(--accent);
+  }
+  .upstream .label {
+    fill: var(--muted);
+  }
+</style>

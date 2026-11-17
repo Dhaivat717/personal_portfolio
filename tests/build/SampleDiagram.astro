@@ -1,0 +1,10 @@
+---
+/** The fixtures' Architecture diagram: the smallest diagram the kit can draw. */
+import { Arrow, Box, Diagram } from "../../src/components/diagram";
+---
+
+<Diagram title="A sample pipeline: input flows to output." width={400} height={52}>
+  <Box x={0} y={0} width={140} label="Input" />
+  <Arrow points={[[140, 26], [260, 26]]} />
+  <Box x={260} y={0} width={140} label="Output" />
+</Diagram>

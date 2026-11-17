@@ -15,13 +15,17 @@ media:
   alt: "Placeholder: a simulated WhatsApp chat receiving a birthday wish."
 ---
 
+import Architecture from "./architecture.astro";
+
 ## Problem
 
 Placeholder: the problem this project solves.
 
 ## Architecture
 
-Placeholder: the architecture diagram and its walk-through.
+<Architecture />
+
+Placeholder walk-through: WhatsApp pushes every group message to the bot over a WebSocket. Most messages are dropped by cheap local checks before anything costs money; only a real cluster of wishes reaches Gemini. Every drop happens before the next, more expensive stage, so a busy group costs the same as a quiet one until people start wishing someone.
 
 ## Approach
 

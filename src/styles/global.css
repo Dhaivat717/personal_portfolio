@@ -32,12 +32,16 @@
   --fg-strong: light-dark(#000, #fff);
   --muted: light-dark(#6e6e73, #a1a1a6);
   --line: light-dark(#d2d2d7, #38383d);
+  /* Lines that must be seen (diagram strokes): >= 3:1 on --bg and --surface. */
+  --stroke: light-dark(#86868b, #7c7c80);
   --surface: light-dark(#fff, #1c1c1e);
   --hover: light-dark(#f5f5f7, #2c2c2e);
   --shadow: light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.5));
   --glass: light-dark(rgb(255 255 255 / 0.72), rgb(0 0 0 / 0.66));
   --accent: light-dark(#c2410c, #ff8a3d);
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  /* An opaque accent tint that keeps --fg, --muted and --accent text readable on it. */
+  --accent-fill: light-dark(#fcf4f0, #24160d);
   --on-accent: light-dark(#fff, #1a0c02);
 
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
