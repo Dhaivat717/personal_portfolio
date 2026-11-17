@@ -7,7 +7,7 @@
 import type { GetStaticPaths } from "astro";
 import { render } from "astro:content";
 import MetaStrip from "../../components/MetaStrip.astro";
-import { assertSpine, warnOnWordCount } from "../../deepDive";
+import { spineHeadings, warnOnWordCount } from "../../deepDive";
 import Base from "../../layouts/Base.astro";
 import { getProjects, projectHref, type Project } from "../../projects";
 import { site } from "../../settings";
@@ -29,8 +29,8 @@ interface Props {
 const { project, previous, next } = Astro.props;
 const { title, pitch, media } = project.data;
 const { Content, headings } = await render(project);
-const toc = assertSpine(project.id, headings);
-warnOnWordCount(project.id, project.body ?? "");
+const toc = spineHeadings(project, headings);
+warnOnWordCount(project);
 
 const pager = [
   previous && { rel: "prev", label: "Previous", project: previous },

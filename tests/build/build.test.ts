@@ -166,7 +166,9 @@ describe("the Deep dive word count", () => {
     expect(status).toBe(0);
     // short: 7 words of headings and 5 one-word paragraphs.
     expect(output).toMatch(/Warning: Personal project "short" has 12 words; a Deep dive should run 800–1,500 words\./);
-    // in-range has 1,007 words.
+    // long: 7 words of headings and 5 paragraphs of 320 words.
+    expect(output).toMatch(/Warning: Personal project "long" has 1,607 words; a Deep dive should run 800–1,500 words\./);
+    // in-range has 1,011 words, and an h3 inside Approach, which the spine allows.
     expect(output).not.toContain('"in-range" has');
   });
 });
