@@ -1,0 +1,80 @@
+---
+/**
+ * A component of the system: a rounded box with a label, an optional detail
+ * line (monospace, muted) and an optional step number such as "01".
+ */
+import type { Tone } from "./kit";
+
+interface Props {
+  x: number;
+  y: number;
+  width: number;
+  /** Defaults to 52, which fits a label and a detail line. */
+  height?: number;
+  label: string;
+  detail?: string;
+  step?: string;
+  tone?: Tone;
+}
+
+const { x, y, width, height = 52, label, detail, step, tone = "default" } = Astro.props;
+const pad = 20;
+// With a detail line, label and detail sit as a pair; alone, the label is centered.
+const labelY = detail ? y + height / 2 - 4 : y + height / 2 + 5;
+const detailY = y + height / 2 + 14;
+const labelX = step ? x + pad + 24 : x + pad;
+---
+
+<g class:list={["box", tone]}>
+  <rect x={x} y={y} width={width} height={height} rx="12" />
+  {
+    step && (
+      <text class="step" x={x + pad} y={labelY}>
+        {step}
+      </text>
+    )
+  }
+  <text class="label" x={labelX} y={labelY}>{label}</text>
+  {
+    detail && (
+      <text class="detail" x={x + pad} y={detailY}>
+        {detail}
+      </text>
+    )
+  }
+</g>
+
+<style>
+  rect {
+    fill: var(--surface);
+    stroke: var(--stroke);
+    stroke-width: 1.25;
+  }
+  .label {
+    font: 600 14px var(--sans);
+    fill: var(--fg);
+  }
+  .detail {
+    font: 400 11px var(--mono);
+    fill: var(--muted);
+  }
+  .step {
+    font: 500 11px var(--mono);
+    fill: var(--accent);
+  }
+
+  .accent rect {
+    fill: var(--accent-fill);
+    stroke: var(--accent);
+    stroke-width: 1.75;
+  }
+
+  .upstream rect {
+    fill: none;
+    stroke-dasharray: 5 4;
+  }
+  .upstream .label,
+  .upstream .step {
+    fill: var(--muted);
+  }
+</style>

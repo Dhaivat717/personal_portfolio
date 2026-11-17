@@ -1,0 +1,72 @@
+---
+/**
+ * A flow between parts: a line through `points` ending in an arrowhead.
+ * `branch` dashes it, for edge-case paths that leave the main flow (a
+ * rejected request, a retry, a dropped message), so a diagram can show the
+ * whole flow at full fidelity.
+ */
+import { arrowGeometry, defaultLabelAt, type Point, type Tone } from "./kit";
+
+interface Props {
+  /** At least two [x, y] points; the head is at the last one. */
+  points: Point[];
+  tone?: Tone;
+  branch?: boolean;
+  /** A short label on the flow, e.g. the condition for a branch. */
+  label?: string;
+  /** Where the label starts. Defaults to just past the arrow's start. */
+  labelAt?: Point;
+}
+
+const { points, tone = "default", branch = false, label, labelAt } = Astro.props;
+const { line, head } = arrowGeometry(points);
+const [lx, ly] = labelAt ?? defaultLabelAt(points);
+const leftward = points[1][0] < points[0][0];
+---
+
+<g class:list={["arrow", tone, { branch }]}>
+  <path class="line" d={line} />
+  <path class="head" d={head} />
+  {
+    label && (
+      <text x={lx} y={ly} text-anchor={!labelAt && leftward ? "end" : "start"}>
+        {label}
+      </text>
+    )
+  }
+</g>
+
+<style>
+  .line {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.5;
+  }
+  .head {
+    fill: var(--muted);
+  }
+  text {
+    font: 400 11px var(--mono);
+    fill: var(--muted);
+  }
+
+  .branch .line {
+    stroke: var(--stroke);
+    stroke-width: 1.25;
+    stroke-dasharray: 4 4;
+  }
+  .branch .head,
+  .upstream .head {
+    fill: var(--stroke);
+  }
+  .upstream .line {
+    stroke: var(--stroke);
+  }
+
+  .accent .line {
+    stroke: var(--accent);
+  }
+  .accent .head {
+    fill: var(--accent);
+  }
+</style>

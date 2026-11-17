@@ -1,0 +1,36 @@
+---
+/**
+ * Free text anywhere in a diagram: a heading over a column, a note beside a
+ * flow. `detail` is the small monospace style; the default matches a Box label.
+ */
+import type { Tone } from "./kit";
+
+interface Props {
+  x: number;
+  y: number;
+  anchor?: "start" | "middle" | "end";
+  detail?: boolean;
+  tone?: Tone;
+}
+
+const { x, y, anchor = "start", detail = false, tone = "default" } = Astro.props;
+---
+
+<text class:list={["label", tone, { detail }]} x={x} y={y} text-anchor={anchor}><slot /></text>
+
+<style>
+  .label {
+    font: 600 14px var(--sans);
+    fill: var(--fg);
+  }
+  .detail {
+    font: 400 11px var(--mono);
+    fill: var(--muted);
+  }
+  .upstream {
+    fill: var(--muted);
+  }
+  .accent {
+    fill: var(--accent);
+  }
+</style>

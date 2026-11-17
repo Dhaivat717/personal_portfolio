@@ -160,6 +160,24 @@ describe("the Deep dive h2 spine", () => {
   });
 });
 
+describe("the Architecture diagram", () => {
+  // The pass case is the `valid` fixture: every project there has a diagram
+  // from the diagram kit under its Architecture h2.
+
+  test("an Architecture section with no diagram fails the build, naming the project and the fix", () => {
+    const { status, output } = buildWithFixture("architecture-no-diagram");
+    expect(status).not.toBe(0);
+    expect(output).toContain('Personal project "project" has no diagram in its Architecture section');
+    expect(output).toContain("src/components/diagram");
+  });
+
+  test("a diagram renders as an inline SVG image named by its title, inside the Architecture section", () => {
+    const html = buildWithFixture("valid").page("/projects/full")!;
+    const architecture = html.match(/<h2 id="architecture"[\s\S]*?(?=<h2 )/)?.[0] ?? "";
+    expect(architecture).toMatch(/<svg[^>]*role="img"[^>]*aria-label="A sample pipeline: input flows to output\."/);
+  });
+});
+
 describe("the Deep dive word count", () => {
   test("outside 800–1,500 words prints a warning naming the project, and the build still passes", () => {
     const { status, output } = buildWithFixture("word-count");

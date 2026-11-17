@@ -1,0 +1,53 @@
+---
+/**
+ * The root of an architecture diagram: an inline SVG drawn from the kit's
+ * pieces (Box, Arrow, Label, Group), placed by hand in viewBox units.
+ *
+ * Every color is a theme token, so the diagram follows the theme with no JS
+ * and no re-render. The SVG is one image to assistive tech, named by `title`;
+ * the prose walk-through around it is its full text alternative.
+ *
+ * `data-diagram` is what the Architecture diagram check looks for.
+ */
+interface Props {
+  /** The accessible name: one sentence saying what the diagram shows. */
+  title: string;
+  /** viewBox width and height. The SVG scales to the reading column. */
+  width: number;
+  height: number;
+  caption?: string;
+}
+
+const { title, width, height, caption } = Astro.props;
+if (!title?.trim()) {
+  throw new Error("Every <Diagram> needs a title: one sentence saying what it shows, used as its accessible name.");
+}
+---
+
+<figure class="diagram" data-diagram>
+  <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title}>
+    <slot />
+  </svg>
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+  .diagram {
+    margin: 24px 0 0;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  figcaption {
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+  }
+</style>
