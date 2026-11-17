@@ -11,6 +11,9 @@ const kitDir = join(root, "src/components/diagram");
 
 type Theme = "light" | "dark";
 
+/** A color written into markup or CSS: #hex, rgb()/hsl(), or a fill/stroke attribute. */
+const HARD_CODED_COLOR = /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|\b(fill|stroke)="(?!none")/i;
+
 /** A `--name: light-dark(#light, #dark)` token's hex value in one theme. */
 function token(name: string, theme: Theme): string {
   const m = css.match(new RegExp(`--${name}:\\s*light-dark\\(\\s*(#[0-9a-f]{3,6})\\s*,\\s*(#[0-9a-f]{3,6})\\s*\\)`, "i"));
@@ -85,7 +88,18 @@ describe("the diagram kit", () => {
       expect(name, `"${value}" is not a theme token`).toBeDefined();
       expect([...checked], `--${name} isn't covered by the diagram contrast checks`).toContain(name);
     }
-    // No color written into the markup either (fill="#…", style="color: …").
-    expect(source).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|(fill|stroke)="(?!none")/i);
+    expect(source).not.toMatch(HARD_CODED_COLOR);
+  });
+
+  // Each Personal project's own diagram files (e.g. architecture.astro) draw
+  // only with the kit, so they carry no colors of their own.
+  const projectsDir = join(root, "src/content/projects");
+  const diagrams = readdirSync(projectsDir, { recursive: true, encoding: "utf8" })
+    .filter((f) => f.endsWith(".astro"))
+    .map((f) => [f, readFileSync(join(projectsDir, f), "utf8")] as const);
+
+  test.each(diagrams)("src/content/projects/%s has no hard-coded colors", (_, source) => {
+    expect(source).not.toMatch(HARD_CODED_COLOR);
+    expect(source).not.toMatch(/<style|style=/);
   });
 });

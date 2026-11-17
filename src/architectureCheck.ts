@@ -26,7 +26,7 @@ export function architectureDiagramCheck(): AstroIntegration {
         const missing: string[] = [];
         for (const file of files.filter((f) => f.endsWith(".html")).sort()) {
           const section = architectureSection(await readFile(join(projectsDir, file), "utf8"));
-          if (section !== null && !section.includes("data-diagram")) missing.push(file.replace(/\.html$/, ""));
+          if (section !== null && !/<figure[^>]*\sdata-diagram[\s>]/.test(section)) missing.push(file.replace(/\.html$/, ""));
         }
         if (missing.length > 0) {
           throw new Error(
