@@ -1,0 +1,4 @@
+# Keep Cloudflare Pages' default *.pages.dev alias out of search engines so
+# only https://dhaivat.dev gets indexed.
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex

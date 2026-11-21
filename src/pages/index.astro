@@ -1,9 +1,25 @@
 ---
 import Base from "../layouts/Base.astro";
 import { site } from "../settings";
+
+const roleLabel = `${site.role.charAt(0)}${site.role.slice(1).toLowerCase()}`;
+const description = `${roleLabel} at ${site.employer} with ${site.yearsOfExperience} years of experience building distributed systems, developer tools and personal projects.`;
+
+const personJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "@id": `${site.origin}/#person`,
+  name: site.name,
+  jobTitle: site.role,
+  worksFor: { "@type": "Organization", name: site.employer },
+  url: site.origin,
+  image: new URL(site.image, site.origin).href,
+  alumniOf: { "@type": "CollegeOrUniversity", name: site.alumniOf },
+  sameAs: [site.social.github, site.social.linkedin],
+};
 ---
 
-<Base title={`${site.name} · ${site.role} @ ${site.employer}`}>
+<Base title={`${site.name} · ${site.role} @ ${site.employer}`} description={description} jsonLd={personJsonLd}>
   <div class="wrap hero">
     <h1>{site.name}</h1>
     <div class="chips">

@@ -246,3 +246,47 @@ describe("a Deep dive page", () => {
     ]);
   });
 });
+
+/** Extract all `<loc>` values from a sitemap XML document. */
+function sitemapLocs(xml: string | null): string[] {
+  if (!xml) return [];
+  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+}
+
+describe("sitemap and robots.txt", () => {
+  test("production build lists every published page without trailing slashes or drafts, and robots.txt references it", () => {
+    const build = buildWithFixture("drafts", { env: { SITE_ENV: "production", SHOW_DRAFTS: undefined } });
+    expect(build.status).toBe(0);
+
+    const robots = build.file("robots.txt");
+    expect(robots).toContain("User-agent: *");
+    expect(robots).toContain("Allow: /");
+    expect(robots).toContain("Sitemap: https://dhaivat.dev/sitemap-index.xml");
+
+    expect(sitemapLocs(build.file("sitemap-index.xml"))).toEqual(["https://dhaivat.dev/sitemap-0.xml"]);
+
+    const urls = sitemapLocs(build.file("sitemap-0.xml"));
+    expect(urls).toEqual(
+      expect.arrayContaining([
+        "https://dhaivat.dev/",
+        "https://dhaivat.dev/projects",
+        "https://dhaivat.dev/projects/published",
+      ]),
+    );
+    expect(urls).toHaveLength(3);
+    expect(urls.join("\n")).not.toContain("wip");
+    expect(urls.join("\n")).not.toContain("404");
+    for (const url of urls) {
+      expect(url).not.toMatch(/\.html$/);
+      if (url !== "https://dhaivat.dev/") expect(url).not.toMatch(/\/$/);
+    }
+  });
+
+  test("includes a _headers rule adding X-Robots-Tag: noindex on the pages.dev alias", () => {
+    const build = buildWithFixture("valid");
+    expect(build.status).toBe(0);
+    const headers = build.file("_headers");
+    expect(headers).toMatch(/^https:\/\/[^\s]+\.pages\.dev\/\*$/m);
+    expect(headers).toMatch(/^\s+X-Robots-Tag:\s*noindex$/m);
+  });
+});
