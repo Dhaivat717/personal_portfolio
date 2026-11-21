@@ -2,7 +2,7 @@
 /**
  * One Personal project as a list row: accent-tinted icon tile, name, pitch,
  * stack chips and "read →". The whole row links to the project's Deep dive.
- * Used on /projects.
+ * Used on /projects and the Home page Projects Section.
  */
 import { projectHref, type Project } from "../projects";
 import Icon from "./Icon.astro";
@@ -10,16 +10,18 @@ import StackChips from "./StackChips.astro";
 
 interface Props {
   project: Project;
+  headingLevel?: 2 | 3;
 }
 
-const { project } = Astro.props;
+const { project, headingLevel = 2 } = Astro.props;
 const { title, pitch, stack, icon } = project.data;
+const Heading = headingLevel === 3 ? "h3" : "h2";
 ---
 
 <a class="row" href={projectHref(project)}>
   <span class="tile"><Icon name={icon} /></span>
   <span class="body">
-    <h2 class="name">{title}</h2>
+    <Heading class="name">{title}</Heading>
     <p class="pitch">{pitch}</p>
     <StackChips stack={stack} class="stack" />
   </span>

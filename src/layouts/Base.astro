@@ -2,15 +2,21 @@
 import "../styles/global.css";
 import Footer from "../components/Footer.astro";
 import Nav from "../components/Nav.astro";
+import { site } from "../settings";
 
 interface Props {
   title: string;
   description?: string;
   /** Keep this page out of search indexes (e.g. the 404 page). */
   noindex?: boolean;
+  /** Structured data serialized as `<script type="application/ld+json">`. */
+  jsonLd?: Record<string, unknown>;
 }
 
-const { title, description, noindex = false } = Astro.props;
+const { title, description, noindex = false, jsonLd } = Astro.props;
+// With build.format "file", Astro.url.pathname ends in ".html" during build.
+const pathname = Astro.url.pathname.replace(/(index)?\.html$/, "").replace(/(.)\/$/, "$1") || "/";
+const canonicalUrl = new URL(pathname, site.origin).href;
 ---
 
 <!doctype html>
@@ -31,7 +37,9 @@ const { title, description, noindex = false } = Astro.props;
     </script>
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
+    {!noindex && <link rel="canonical" href={canonicalUrl} />}
     {noindex && <meta name="robots" content="noindex" />}
+    {jsonLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")} />}
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
