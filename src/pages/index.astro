@@ -1,4 +1,5 @@
 ---
+import ContactForm from "../components/ContactForm.astro";
 import ProjectRow from "../components/ProjectRow.astro";
 import Base from "../layouts/Base.astro";
 import { getFeaturedProjects } from "../projects";
@@ -51,7 +52,7 @@ const personJsonLd = {
     </div>
   </section>
 
-  <section id="contact"></section>
+  <ContactForm />
 </Base>
 
 <style>
