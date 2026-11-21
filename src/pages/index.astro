@@ -1,9 +1,12 @@
 ---
 import Base from "../layouts/Base.astro";
 import { site } from "../settings";
+
+const roleSentenceCase = `${site.role[0]}${site.role.slice(1).toLowerCase()}`;
+const description = `${roleSentenceCase} at ${site.employer} with ${site.yearsOfExperience} years of experience building large-scale distributed systems and personal software projects.`;
 ---
 
-<Base title={`${site.name} · ${site.role} @ ${site.employer}`}>
+<Base title={`${site.name} · ${site.role} @ ${site.employer}`} description={description}>
   <div class="wrap hero">
     <h1>{site.name}</h1>
     <div class="chips">
@@ -43,7 +46,7 @@ import { site } from "../settings";
     font-size: 13px;
     font-weight: 600;
     color: var(--accent);
-    background: var(--accent-soft);
+    background: var(--accent-fill);
     border-radius: 980px;
     padding: 4px 12px;
   }

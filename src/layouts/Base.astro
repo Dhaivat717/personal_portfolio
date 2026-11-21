@@ -30,6 +30,7 @@ const { title, description, noindex = false } = Astro.props;
       } catch {}
     </script>
     <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     {description && <meta name="description" content={description} />}
     {noindex && <meta name="robots" content="noindex" />}
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
