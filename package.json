@@ -11,6 +11,10 @@
     "check": "astro check",
     "serve": "wrangler pages dev dist --port 8788",
     "test:build": "vitest run",
+    "test:contrast": "vitest run tests/unit/token-contrast.test.ts",
+    "test:axe": "playwright test tests/site/axe.spec.ts",
+    "test:budgets": "playwright test tests/site/budgets.spec.ts",
+    "test:lighthouse": "lhci autorun",
     "test:site": "playwright test",
     "test": "npm run test:build && npm run test:site"
   },
@@ -25,6 +29,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
+    "@axe-core/playwright": "^4.14.0",
+    "@lhci/cli": "^0.16.1",
     "@playwright/test": "^1.65.1",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",

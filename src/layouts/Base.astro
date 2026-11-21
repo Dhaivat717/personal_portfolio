@@ -36,6 +36,7 @@ const canonicalUrl = new URL(pathname, site.origin).href;
       } catch {}
     </script>
     <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     {description && <meta name="description" content={description} />}
     {!noindex && <link rel="canonical" href={canonicalUrl} />}
     {noindex && <meta name="robots" content="noindex" />}

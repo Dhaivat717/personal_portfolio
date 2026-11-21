@@ -47,6 +47,29 @@ describe("contrast math", () => {
 });
 
 /**
+ * Site-wide color token pairs checked in both themes against WCAG 2.2 AA:
+ * text pairs >= 4.5:1, UI-part pairs (focus rings, icons, diagram strokes) >= 3:1.
+ */
+const siteSurfaces = ["bg", "surface", "hover", "accent-fill"];
+const textPairs: [fg: string, bg: string][] = [
+  ...["fg", "fg-strong", "muted", "accent"].flatMap((fg) => siteSurfaces.map((bg): [string, string] => [fg, bg])),
+  ["on-accent", "accent"],
+];
+const uiPartPairs: [part: string, bg: string][] = [
+  ...["stroke", "muted", "accent", "fg", "fg-strong"].flatMap((part) => siteSurfaces.map((bg): [string, string] => [part, bg])),
+];
+
+describe.each(["light", "dark"] as const)("site color tokens in the %s theme", (theme) => {
+  test.each(textPairs)("text --%s on --%s is at least 4.5:1", (fg, bg) => {
+    expect(contrast(token(fg, theme), token(bg, theme))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test.each(uiPartPairs)("UI part --%s on --%s is at least 3:1", (part, bg) => {
+    expect(contrast(token(part, theme), token(bg, theme))).toBeGreaterThanOrEqual(3);
+  });
+});
+
+/**
  * Every color the diagram kit draws with, and what it is drawn on. The figure
  * sits on --bg; default boxes are filled with --surface, accent boxes with
  * --accent-fill; upstream boxes and groups are unfilled, so on --bg.
