@@ -24,6 +24,8 @@ draft: false
 ---
 
 import SampleDiagram from "../../../SampleDiagram.astro";
+import demoPoster from "./approach-demo-poster.jpg";
+import shot from "./approach-shot.png";
 
 The body of the full project uses every field.
 
@@ -40,6 +42,10 @@ The architecture.
 ## Approach
 
 The approach.
+
+<Media src="approach-demo.mp4" poster={demoPoster} alt="The clip in the body, alt." caption="The clip in the body, caption." />
+
+<Media src={shot} alt="The image in the body, alt." caption="The image in the body, caption." />
 
 ## Results
 

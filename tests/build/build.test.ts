@@ -1,4 +1,6 @@
-import { describe, expect, test } from "vitest";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { afterEach, describe, expect, test } from "vitest";
 import { buildWithFixture } from "./build";
 
 describe("production build", () => {
@@ -379,5 +381,132 @@ describe("production-only analytics", () => {
         /<script[^>]+src="https:\/\/static\.cloudflareinsights\.com\/beacon\.min\.js"[^>]*data-cf-beacon=/,
       );
     }
+  });
+});
+
+describe("Personal project media", () => {
+  // The pass case for each rule is the `valid` fixture: `full` has a clip in
+  // public/full/ and a poster next to its MDX, `minimal` an image next to its MDX.
+
+  test.each([
+    ["clip", "missing-clip", "public/gone/hero.mp4"],
+    ["image", "missing-image", "gone/hero.png"],
+    ["poster", "missing-poster", "gone/hero-poster.jpg"],
+  ])("a referenced %s that's missing fails the build, naming the project and the file", (_, fixture, file) => {
+    const { status, output } = buildWithFixture(fixture);
+    expect(status).not.toBe(0);
+    expect(output).toContain('Personal project "gone"');
+    expect(output).toContain(file);
+    expect(output).toMatch(/doesn't exist/);
+  });
+});
+
+describe("Personal project media size caps", () => {
+  // The sized file is written just before each build (and is gitignored), so
+  // multi-megabyte files never live in the repo.
+  const fixtures = resolve(import.meta.dirname, "fixtures");
+
+  /** Writes a real JPEG (the fixture's poster) padded after its end marker to `size` bytes, so it still decodes. */
+  function writePaddedJpeg(fixture: string, file: string, size: number): void {
+    const jpeg = readFileSync(join(fixtures, fixture, "sized/hero-poster.jpg"));
+    writeFileSync(join(fixtures, fixture, "sized", file), Buffer.concat([jpeg, Buffer.alloc(size - jpeg.length)]));
+  }
+
+  afterEach(() => {
+    rmSync(join(fixtures, "clip-size/public/sized/hero.mp4"), { force: true });
+    rmSync(join(fixtures, "image-size/sized/hero.jpg"), { force: true });
+    rmSync(join(fixtures, "body-image-size/sized/approach-shot.jpg"), { force: true });
+  });
+
+  test("a clip of exactly 4 MB passes; one byte more fails, naming the project, the file and the cap", () => {
+    const clip = join(fixtures, "clip-size/public/sized/hero.mp4");
+    mkdirSync(dirname(clip), { recursive: true });
+
+    writeFileSync(clip, Buffer.alloc(4_000_000));
+    expect(buildWithFixture("clip-size").status).toBe(0);
+
+    writeFileSync(clip, Buffer.alloc(4_000_001));
+    const { status, output } = buildWithFixture("clip-size");
+    expect(status).not.toBe(0);
+    expect(output).toContain('Personal project "sized"');
+    expect(output).toContain("public/sized/hero.mp4 is 4 MB");
+    expect(output).toContain("clips must be at most 4 MB");
+  });
+
+  test("a source image of exactly 1 MB passes; one byte more fails, naming the project, the file and the cap", () => {
+    writePaddedJpeg("image-size", "hero.jpg", 1_000_000);
+    const atCap = buildWithFixture("image-size");
+    expect(atCap.status).toBe(0);
+
+    writePaddedJpeg("image-size", "hero.jpg", 1_000_001);
+    const { status, output } = buildWithFixture("image-size");
+    expect(status).not.toBe(0);
+    expect(output).toContain('Personal project "sized"');
+    expect(output).toContain("sized/hero.jpg is 1 MB");
+    expect(output).toContain("source images must be at most 1 MB");
+  });
+
+  test("an image imported in the body of exactly 1 MB passes; one byte more fails, naming the project and the file", () => {
+    writePaddedJpeg("body-image-size", "approach-shot.jpg", 1_000_000);
+    expect(buildWithFixture("body-image-size").status).toBe(0);
+
+    writePaddedJpeg("body-image-size", "approach-shot.jpg", 1_000_001);
+    const { status, output } = buildWithFixture("body-image-size");
+    expect(status).not.toBe(0);
+    expect(output).toContain('Personal project "sized"');
+    expect(output).toContain("sized/approach-shot.jpg is 1 MB");
+  });
+});
+
+describe("Personal project media alt and caption", () => {
+  // The pass case is the `valid` fixture: its frontmatter media and the clip
+  // and image in `full`'s body all have an alt and a caption.
+
+  test.each([
+    ["alt", "missing-alt"],
+    ["caption", "missing-caption"],
+  ])("frontmatter media with no %s fails the build, naming the project and the field", (field, fixture) => {
+    const { status, output } = buildWithFixture(fixture);
+    expect(status).not.toBe(0);
+    expect(output).toContain("bare");
+    expect(output).toMatch(new RegExp(`media\\.${field}.*required`, "is"));
+  });
+
+  test.each([
+    ["alt", "body-missing-alt", 'has media (body-clip.mp4) with no alt'],
+    ["caption", "body-missing-caption", "has media (an image) with no caption"],
+  ])("a <Media> in the body with no %s fails the build, naming the project", (_, fixture, message) => {
+    const { status, output } = buildWithFixture(fixture);
+    expect(status).not.toBe(0);
+    expect(output).toContain(`Personal project "bare" ${message}`);
+  });
+
+  test("frontmatter media with a blank alt fails the build, naming the project and the field", () => {
+    const { status, output } = buildWithFixture("blank-alt");
+    expect(status).not.toBe(0);
+    expect(output).toContain("bare");
+    expect(output).toMatch(/media\.alt/);
+  });
+
+  test("a <Media> in the body given an image file name instead of an import fails the build, naming the project", () => {
+    const { status, output } = buildWithFixture("body-string-image");
+    expect(status).not.toBe(0);
+    expect(output).toContain('Personal project "bare" passes "body-shot.png" to Media');
+    expect(output).toContain("import images instead");
+  });
+
+  test("a clip with no poster fails the build, naming the project and the clip", () => {
+    const { status, output } = buildWithFixture("clip-no-poster");
+    expect(status).not.toBe(0);
+    expect(output).toContain('Personal project "bare" has clip "hero.mp4" with no poster');
+  });
+
+  test("the body's clip and image render in framed figures with their captions", () => {
+    const html = buildWithFixture("valid").page("/projects/full")!;
+    expect(html).toMatch(/<video[^>]*aria-label="The clip in the body, alt\."/);
+    expect(html).toContain('data-src="/full/approach-demo.mp4"');
+    expect(html).toMatch(/<img[^>]*alt="The image in the body, alt\."/);
+    expect(text(html)).toContain("The clip in the body, caption.");
+    expect(text(html)).toContain("The image in the body, caption.");
   });
 });
