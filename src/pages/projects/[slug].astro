@@ -101,6 +101,29 @@ const pager = [
   </div>
 </Base>
 
+<script>
+  import { trackEvent } from "../../analytics";
+
+  const sentinel =
+    document.getElementById("what-i-learned") ?? document.getElementById("results");
+
+  if (sentinel && "IntersectionObserver" in window) {
+    let fired = false;
+    const observer = new IntersectionObserver((entries) => {
+      if (fired) return;
+      for (const entry of entries) {
+        if (entry.isIntersecting || entry.boundingClientRect.top < 0) {
+          fired = true;
+          trackEvent("deep-dive-read");
+          observer.disconnect();
+          break;
+        }
+      }
+    });
+    observer.observe(sentinel);
+  }
+</script>
+
 <style>
   .deep-dive {
     display: grid;
