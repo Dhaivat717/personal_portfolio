@@ -39,6 +39,56 @@ describe("Personal projects", () => {
   });
 });
 
+/** The Home page's `#projects` section markup. */
+function homeProjectsSection(html: string | null): string {
+  return html?.match(/<section[^>]*id="projects"[^>]*>([\s\S]*?)<\/section>/)?.[1] ?? "";
+}
+
+describe("Home page Projects band", () => {
+  test("shows up to 3 featured projects lowest order first, excludes non-featured, and links to /projects", () => {
+    const build = buildWithFixture("featured");
+    expect(build.status).toBe(0);
+
+    const band = homeProjectsSection(build.page("/"));
+    expect(band).toMatch(/<h2[^>]*>Projects\.<\/h2>/);
+
+    const rowHrefs = [...band.matchAll(/<a[^>]*href="(\/projects\/[^"]+)"/g)].map((m) => m[1]);
+    expect(rowHrefs).toEqual(["/projects/zeta", "/projects/mid", "/projects/alpha"]);
+    expect(band).not.toContain("/projects/unfeatured");
+    expect(band).not.toContain("Unfeatured Project");
+
+    // Headings inside the Home band are h3 (under the band's h2).
+    const rowHeadings = [...band.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)].map((m) => m[1]);
+    expect(rowHeadings).toEqual(["Zeta Project", "Mid Project", "Alpha Project"]);
+
+    // Ends with "All projects →" linking to /projects.
+    expect(band).toMatch(/<a[^>]*href="\/projects"[^>]*>\s*All projects →\s*<\/a>/);
+
+    // Non-featured project still appears on /projects.
+    expect(build.page("/projects")).toContain('href="/projects/unfeatured"');
+  });
+
+  test("follows the draft production/preview rule", () => {
+    const shown = buildWithFixture("drafts", { env: { SITE_ENV: undefined, SHOW_DRAFTS: undefined } });
+    expect(shown.status).toBe(0);
+    const shownBand = homeProjectsSection(shown.page("/"));
+    expect(shownBand).toContain('href="/projects/published"');
+    expect(shownBand).toContain('href="/projects/wip"');
+
+    for (const env of [
+      { SITE_ENV: "production", SHOW_DRAFTS: undefined },
+      { SITE_ENV: undefined, SHOW_DRAFTS: "false" },
+    ]) {
+      const hidden = buildWithFixture("drafts", { env });
+      expect(hidden.status).toBe(0);
+      const hiddenBand = homeProjectsSection(hidden.page("/"));
+      expect(hiddenBand).toContain('href="/projects/published"');
+      expect(hiddenBand).not.toContain("/projects/wip");
+      expect(hiddenBand).not.toContain("Work In Progress");
+    }
+  });
+});
+
 /** The nav's Projects drop-down entries on a built page, in order, as [href, text]. */
 function navProjects(html: string | null): [string, string][] {
   const list = html?.match(/id="nav-projects"[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? "";
@@ -111,6 +161,15 @@ describe("Personal project schema", () => {
     expect(status).not.toBe(0);
     expect(output).toContain("projects → bad-icon");
     expect(output).toMatch(/"not-a-real-icon" is not a Lucide icon name/);
+  });
+
+  test("more than 3 featured projects fail the build with a clear message", () => {
+    const { status, output } = buildWithFixture("too-many-featured");
+    expect(status).not.toBe(0);
+    expect(output).toMatch(/at most 3/i);
+    expect(output).toMatch(/featured/i);
+    expect(output).toContain('"f1"');
+    expect(output).toContain('"f4"');
   });
 });
 
