@@ -1,9 +1,12 @@
 ---
+import ProjectRow from "../components/ProjectRow.astro";
 import Base from "../layouts/Base.astro";
+import { getFeaturedProjects } from "../projects";
 import { site } from "../settings";
 
 const roleSentenceCase = `${site.role[0]}${site.role.slice(1).toLowerCase()}`;
 const description = `${roleSentenceCase} at ${site.employer} with ${site.yearsOfExperience} years of experience building large-scale distributed systems and personal software projects.`;
+const featuredProjects = await getFeaturedProjects();
 ---
 
 <Base title={`${site.name} · ${site.role} @ ${site.employer}`} description={description}>
@@ -17,7 +20,23 @@ const description = `${roleSentenceCase} at ${site.employer} with ${site.yearsOf
 
   <!-- Placeholders: later tickets fill these Sections. -->
   <section id="experience"></section>
-  <section id="projects"></section>
+
+  <section id="projects" class="band" aria-labelledby="projects-heading">
+    <div class="wrap">
+      <h2 id="projects-heading">Projects.</h2>
+      <ul class="project-list">
+        {
+          featuredProjects.map((project) => (
+            <li>
+              <ProjectRow project={project} headingLevel={3} />
+            </li>
+          ))
+        }
+      </ul>
+      <a class="more" href="/projects">All projects →</a>
+    </div>
+  </section>
+
   <section id="contact"></section>
 </Base>
 
@@ -49,5 +68,32 @@ const description = `${roleSentenceCase} at ${site.employer} with ${site.yearsOf
     background: var(--accent-fill);
     border-radius: 980px;
     padding: 4px 12px;
+  }
+  .band {
+    padding: 88px 0;
+  }
+  .band h2 {
+    font-size: clamp(32px, 4.5vw, 48px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin: 0 0 24px;
+    color: var(--fg-strong);
+  }
+  .project-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .more {
+    display: inline-block;
+    margin-top: 22px;
+    font: 14px var(--mono);
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .more:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
   }
 </style>
