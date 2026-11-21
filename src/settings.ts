@@ -8,6 +8,9 @@ export const site = {
   role: "Software Engineer",
   employer: "Amazon Ads",
   yearsOfExperience: "5+",
+  alumniOf: "Rutgers University",
+  /** Path on `origin` for the Person JSON-LD image (updated when the portrait/card lands). */
+  image: "/og/home.png",
   social: {
     github: "https://github.com/Dhaivat717",
     linkedin: "https://www.linkedin.com/in/dhaivat-h-patel/",

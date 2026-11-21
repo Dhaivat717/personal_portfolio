@@ -27,10 +27,26 @@ interface Props {
 }
 
 const { project, previous, next } = Astro.props;
-const { title, pitch, media } = project.data;
+const { title, pitch, stack, links, media } = project.data;
 const { Content, headings } = await render(project);
 const toc = spineHeadings(project, headings);
 warnOnWordCount(project);
+
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  name: title,
+  description: pitch,
+  url: new URL(projectHref(project), site.origin).href,
+  codeRepository: links.code,
+  programmingLanguage: stack,
+  author: {
+    "@type": "Person",
+    "@id": `${site.origin}/#person`,
+    name: site.name,
+    url: site.origin,
+  },
+};
 
 const pager = [
   previous && { rel: "prev", label: "Previous", project: previous },
@@ -38,7 +54,7 @@ const pager = [
 ].filter((card) => !!card);
 ---
 
-<Base title={`${title} · ${site.name}`} description={pitch}>
+<Base title={`${title} · ${site.name}`} description={pitch} jsonLd={softwareJsonLd}>
   <div class="wrap deep-dive">
     <header class="summary">
       <a class="back" href="/projects">← Projects</a>
