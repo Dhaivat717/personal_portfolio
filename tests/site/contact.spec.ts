@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
+import http from "node:http";
 import net from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,6 +9,47 @@ import { site } from "../../src/settings";
 
 const ALWAYS_PASS_SECRET = "1x0000000000000000000000000000000AA";
 const ALWAYS_FAIL_SECRET = "2x0000000000000000000000000000000AA";
+
+interface CapturedEmailRequest {
+  authorization: string | undefined;
+  body: {
+    from: string;
+    to: string[];
+    reply_to: string;
+    subject: string;
+    text: string;
+  };
+}
+
+async function startEmailStub(): Promise<{
+  url: string;
+  captured: CapturedEmailRequest[];
+  stop: () => Promise<void>;
+}> {
+  const captured: CapturedEmailRequest[] = [];
+  const server = http.createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (c) => chunks.push(c as Buffer));
+    req.on("end", () => {
+      const raw = Buffer.concat(chunks).toString("utf8");
+      captured.push({
+        authorization: req.headers.authorization,
+        body: JSON.parse(raw),
+      });
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ id: "stub-email-id" }));
+    });
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const addr = server.address();
+  if (!addr || typeof addr === "string") throw new Error("Could not bind email stub");
+  return {
+    url: `http://127.0.0.1:${addr.port}/emails`,
+    captured,
+    stop: () => new Promise<void>((resolve, reject) => server.close((e) => (e ? reject(e) : resolve()))),
+  };
+}
 
 async function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -89,20 +131,6 @@ async function startWrangler(bindings: Record<string, string>): Promise<{
   };
 }
 
-async function waitForCapturedEmail(logs: () => string): Promise<string> {
-  const deadline = Date.now() + 10_000;
-  while (Date.now() < deadline) {
-    // Strip ANSI escape codes from wrangler logs before matching the .eml path.
-    const clean = logs().replace(/\x1b\[[0-9;]*m/g, "");
-    const match = clean.match(/Email:\s+(\S+\.eml)/);
-    if (match?.[1]) {
-      return readFile(match[1], "utf8");
-    }
-    await new Promise((r) => setTimeout(r, 150));
-  }
-  throw new Error(`No captured .eml file found in wrangler logs:\n${logs()}`);
-}
-
 test.describe("Contact form", () => {
   test("renders in #contact with visible labels, Turnstile widget, and no email address", async ({
     page,
@@ -147,11 +175,14 @@ test.describe("Contact form", () => {
     });
   });
 
-  test("always-pass Turnstile key sends via send_email with [preview] subject outside production", async () => {
+  test("always-pass Turnstile key sends via email API with [preview] subject outside production", async () => {
     const recipient = "owner-preview@example.invalid";
+    const emailStub = await startEmailStub();
     const srv = await startWrangler({
       TURNSTILE_SECRET_KEY: ALWAYS_PASS_SECRET,
       CONTACT_TO: recipient,
+      RESEND_API_KEY: "re_preview_secret",
+      EMAIL_API_URL: emailStub.url,
     });
     try {
       const res = await fetch(`${srv.baseUrl}/api/contact`, {
@@ -173,21 +204,27 @@ test.describe("Contact form", () => {
       const body = JSON.parse(text);
       expect(body.ok).toBe(true);
 
-      const eml = await waitForCapturedEmail(srv.logs);
-      expect(eml).toContain(`To: ${recipient}`);
-      expect(eml).toContain("Reply-To: ada@example.test");
-      expect(eml).toMatch(/^Subject: \[preview\] .*Ada Lovelace/m);
-      expect(eml).toContain("Hello from the preview test!");
+      expect(emailStub.captured).toHaveLength(1);
+      const sent = emailStub.captured[0];
+      expect(sent.authorization).toBe("Bearer re_preview_secret");
+      expect(sent.body.to).toEqual([recipient]);
+      expect(sent.body.reply_to).toBe("ada@example.test");
+      expect(sent.body.subject).toMatch(/^\[preview\] .*Ada Lovelace/);
+      expect(sent.body.text).toContain("Hello from the preview test!");
     } finally {
       await srv.stop();
+      await emailStub.stop();
     }
   });
 
   test("SITE_ENV=production omits [preview] from the email subject", async () => {
     const recipient = "owner-prod@example.invalid";
+    const emailStub = await startEmailStub();
     const srv = await startWrangler({
       TURNSTILE_SECRET_KEY: ALWAYS_PASS_SECRET,
       CONTACT_TO: recipient,
+      RESEND_API_KEY: "re_prod_secret",
+      EMAIL_API_URL: emailStub.url,
       SITE_ENV: "production",
     });
     try {
@@ -206,18 +243,23 @@ test.describe("Contact form", () => {
       });
       expect(res.status).toBe(200);
 
-      const eml = await waitForCapturedEmail(srv.logs);
-      expect(eml).toMatch(/^Subject: Contact from Grace Hopper/m);
-      expect(eml).not.toContain("[preview]");
+      expect(emailStub.captured).toHaveLength(1);
+      const sent = emailStub.captured[0];
+      expect(sent.body.subject).toBe("Contact from Grace Hopper");
+      expect(sent.body.subject).not.toContain("[preview]");
     } finally {
       await srv.stop();
+      await emailStub.stop();
     }
   });
 
   test("always-fail Turnstile key rejects the submission", async () => {
+    const emailStub = await startEmailStub();
     const srv = await startWrangler({
       TURNSTILE_SECRET_KEY: ALWAYS_FAIL_SECRET,
       CONTACT_TO: "owner-fail@example.invalid",
+      RESEND_API_KEY: "re_fail_secret",
+      EMAIL_API_URL: emailStub.url,
     });
     try {
       const res = await fetch(`${srv.baseUrl}/api/contact`, {
@@ -237,8 +279,10 @@ test.describe("Contact form", () => {
       const body = await res.json();
       expect(body.ok).toBe(false);
       expect(body.error).toMatch(/verification/i);
+      expect(emailStub.captured).toHaveLength(0);
     } finally {
       await srv.stop();
+      await emailStub.stop();
     }
   });
 

@@ -1,9 +1,9 @@
-import { EmailMessage } from "cloudflare:email";
 import { CONTACT_LIMITS, type ContactFieldName } from "../../src/contact";
 import { site } from "../../src/settings";
 
 interface Env {
-  SEND_EMAIL?: SendEmail;
+  RESEND_API_KEY?: string;
+  EMAIL_API_URL?: string;
   CONTACT_TO?: string;
   TURNSTILE_SECRET_KEY?: string;
   SITE_ENV?: string;
@@ -22,6 +22,7 @@ type ErrorReason = "validation" | "verification" | "unavailable";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SITE_HOST = new URL(site.origin).hostname;
 const FROM_ADDRESS = `contact@${SITE_HOST}`;
+const DEFAULT_EMAIL_API_URL = "https://api.resend.com/emails";
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 function wantsJson(request: Request): boolean {
@@ -108,27 +109,31 @@ function sanitizeHeaderValue(value: string): string {
   return value.replace(/[\r\n]+/g, " ").trim();
 }
 
-function buildMimeMessage(opts: {
+async function sendViaResend(opts: {
+  apiUrl: string;
+  apiKey: string;
   from: string;
   to: string;
   replyTo: string;
   subject: string;
   name: string;
   message: string;
-}): string {
-  const messageId = `<${crypto.randomUUID()}@${SITE_HOST}>`;
-  const headers = [
-    `From: ${sanitizeHeaderValue(site.name)} Contact <${opts.from}>`,
-    `To: ${sanitizeHeaderValue(opts.to)}`,
-    `Reply-To: ${sanitizeHeaderValue(opts.replyTo)}`,
-    `Subject: ${sanitizeHeaderValue(opts.subject)}`,
-    `Date: ${new Date().toUTCString()}`,
-    `Message-ID: ${messageId}`,
-    `MIME-Version: 1.0`,
-    `Content-Type: text/plain; charset=utf-8`,
-  ];
-  const body = `Name: ${opts.name}\nEmail: ${opts.replyTo}\n\n${opts.message}\n`;
-  return `${headers.join("\r\n")}\r\n\r\n${body}`;
+}): Promise<boolean> {
+  const res = await fetch(opts.apiUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${opts.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: `${sanitizeHeaderValue(site.name)} Contact <${opts.from}>`,
+      to: [opts.to],
+      reply_to: opts.replyTo,
+      subject: sanitizeHeaderValue(opts.subject),
+      text: `Name: ${opts.name}\nEmail: ${opts.replyTo}\n\n${opts.message}\n`,
+    }),
+  });
+  return res.ok;
 }
 
 function redirectSeeOther(location: string): Response {
@@ -188,7 +193,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     );
   }
 
-  if (!env.TURNSTILE_SECRET_KEY || !env.SEND_EMAIL || !env.CONTACT_TO) {
+  if (!env.TURNSTILE_SECRET_KEY || !env.RESEND_API_KEY || !env.CONTACT_TO) {
     return respondError(
       json,
       500,
@@ -208,17 +213,26 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const prefix = env.SITE_ENV === "production" ? "" : "[preview] ";
   const subject = `${prefix}Contact from ${input.name}`;
-  const raw = buildMimeMessage({
-    from: FROM_ADDRESS,
-    to: env.CONTACT_TO,
-    replyTo: input.email,
-    subject,
-    name: input.name,
-    message: input.message,
-  });
 
   try {
-    await env.SEND_EMAIL.send(new EmailMessage(FROM_ADDRESS, env.CONTACT_TO, raw));
+    const sent = await sendViaResend({
+      apiUrl: env.EMAIL_API_URL || DEFAULT_EMAIL_API_URL,
+      apiKey: env.RESEND_API_KEY,
+      from: FROM_ADDRESS,
+      to: env.CONTACT_TO,
+      replyTo: input.email,
+      subject,
+      name: input.name,
+      message: input.message,
+    });
+    if (!sent) {
+      return respondError(
+        json,
+        502,
+        "Could not send your message right now. Please try again later.",
+        "unavailable",
+      );
+    }
   } catch {
     return respondError(
       json,

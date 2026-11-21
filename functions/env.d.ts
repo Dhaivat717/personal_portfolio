@@ -1,15 +1,3 @@
-declare module "cloudflare:email" {
-  export class EmailMessage {
-    readonly from: string;
-    readonly to: string;
-    constructor(from: string, to: string, raw: ReadableStream | string);
-  }
-}
-
-interface SendEmail {
-  send(message: import("cloudflare:email").EmailMessage): Promise<void>;
-}
-
 interface EventContext<Env = unknown> {
   request: Request;
   env: Env;
