@@ -1,4 +1,6 @@
 import { EmailMessage } from "cloudflare:email";
+import { CONTACT_LIMITS, type ContactFieldName } from "../../src/contact";
+import { site } from "../../src/settings";
 
 interface Env {
   SEND_EMAIL?: SendEmail;
@@ -14,14 +16,12 @@ interface ContactInput {
   turnstileToken: string;
 }
 
-type FieldName = "name" | "email" | "message";
-type FieldErrors = Partial<Record<FieldName, string>>;
+type FieldErrors = Partial<Record<ContactFieldName, string>>;
+type ErrorReason = "validation" | "verification" | "unavailable";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MAX_NAME = 120;
-const MAX_EMAIL = 254;
-const MAX_MESSAGE = 5000;
-const FROM_ADDRESS = "contact@dhaivat.dev";
+const SITE_HOST = new URL(site.origin).hostname;
+const FROM_ADDRESS = `contact@${SITE_HOST}`;
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 function wantsJson(request: Request): boolean {
@@ -69,18 +69,18 @@ function validate(input: ContactInput): FieldErrors {
 
   if (!input.name) {
     errors.name = "Please enter your name.";
-  } else if (input.name.length > MAX_NAME) {
-    errors.name = `Name must be ${MAX_NAME} characters or fewer.`;
+  } else if (input.name.length > CONTACT_LIMITS.name) {
+    errors.name = `Name must be ${CONTACT_LIMITS.name} characters or fewer.`;
   }
 
-  if (!input.email || !EMAIL_RE.test(input.email) || input.email.length > MAX_EMAIL) {
+  if (!input.email || !EMAIL_RE.test(input.email) || input.email.length > CONTACT_LIMITS.email) {
     errors.email = "Please enter a valid email address.";
   }
 
   if (!input.message) {
     errors.message = "Please enter a message.";
-  } else if (input.message.length > MAX_MESSAGE) {
-    errors.message = `Message must be ${MAX_MESSAGE} characters or fewer.`;
+  } else if (input.message.length > CONTACT_LIMITS.message) {
+    errors.message = `Message must be ${CONTACT_LIMITS.message} characters or fewer.`;
   }
 
   return errors;
@@ -116,9 +116,9 @@ function buildMimeMessage(opts: {
   name: string;
   message: string;
 }): string {
-  const messageId = `<${crypto.randomUUID()}@dhaivat.dev>`;
+  const messageId = `<${crypto.randomUUID()}@${SITE_HOST}>`;
   const headers = [
-    `From: Dhaivat.dev Contact <${opts.from}>`,
+    `From: ${sanitizeHeaderValue(site.name)} Contact <${opts.from}>`,
     `To: ${sanitizeHeaderValue(opts.to)}`,
     `Reply-To: ${sanitizeHeaderValue(opts.replyTo)}`,
     `Subject: ${sanitizeHeaderValue(opts.subject)}`,
@@ -131,101 +131,10 @@ function buildMimeMessage(opts: {
   return `${headers.join("\r\n")}\r\n\r\n${body}`;
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
-function htmlResultPage(opts: {
-  title: string;
-  heading: string;
-  message: string;
-  errors?: FieldErrors;
-  status: number;
-}): Response {
-  const errorList = opts.errors
-    ? `<ul>${Object.values(opts.errors)
-        .filter((v): v is string => Boolean(v))
-        .map((msg) => `<li>${escapeHtml(msg)}</li>`)
-        .join("")}</ul>`
-    : "";
-
-  const html = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex" />
-    <title>${escapeHtml(opts.title)} · Dhaivat Patel</title>
-    <style>
-      :root {
-        color-scheme: light dark;
-        --bg: light-dark(#fff, #000);
-        --fg: light-dark(#1d1d1f, #f5f5f7);
-        --fg-strong: light-dark(#000, #fff);
-        --muted: light-dark(#6e6e73, #a1a1a6);
-        --accent: light-dark(#c2410c, #ff8a3d);
-      }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: var(--bg);
-        color: var(--fg);
-        line-height: 1.55;
-      }
-      main {
-        max-width: 520px;
-        width: 100%;
-      }
-      h1 {
-        margin: 0 0 12px;
-        font-size: clamp(28px, 4vw, 40px);
-        letter-spacing: -0.03em;
-        color: var(--fg-strong);
-      }
-      p {
-        margin: 0 0 18px;
-        color: var(--muted);
-      }
-      ul {
-        margin: 0 0 20px;
-        padding-left: 20px;
-        color: var(--accent);
-      }
-      a {
-        color: var(--accent);
-        font-weight: 600;
-        text-decoration: none;
-      }
-      a:hover {
-        text-decoration: underline;
-      }
-      a:focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
-      }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>${escapeHtml(opts.heading)}</h1>
-      <p>${escapeHtml(opts.message)}</p>
-      ${errorList}
-      <p><a href="/#contact">← Back to contact form</a></p>
-    </main>
-  </body>
-</html>`;
-
-  return new Response(html, {
-    status: opts.status,
-    headers: { "content-type": "text/html; charset=utf-8" },
+function redirectSeeOther(location: string): Response {
+  return new Response(null, {
+    status: 303,
+    headers: { Location: location },
   });
 }
 
@@ -233,6 +142,7 @@ function respondError(
   json: boolean,
   status: number,
   error: string,
+  reason: ErrorReason,
   errors?: FieldErrors,
 ): Response {
   if (json) {
@@ -244,13 +154,7 @@ function respondError(
       },
     );
   }
-  return htmlResultPage({
-    title: "Message not sent",
-    heading: "Message not sent.",
-    message: error,
-    errors,
-    status,
-  });
+  return redirectSeeOther(`/contact/error?reason=${reason}`);
 }
 
 function respondSuccess(json: boolean, message: string): Response {
@@ -260,24 +164,19 @@ function respondSuccess(json: boolean, message: string): Response {
       headers: { "content-type": "application/json; charset=utf-8" },
     });
   }
-  return htmlResultPage({
-    title: "Message sent",
-    heading: "Message sent.",
-    message,
-    status: 200,
-  });
+  return redirectSeeOther("/contact/sent");
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const json = wantsJson(request);
   const input = await parseInput(request);
   if (!input) {
-    return respondError(json, 400, "Invalid request body.");
+    return respondError(json, 400, "Invalid request body.", "validation");
   }
 
   const errors = validate(input);
   if (Object.keys(errors).length > 0) {
-    return respondError(json, 400, "Please fix the highlighted fields.", errors);
+    return respondError(json, 400, "Please fix the highlighted fields.", "validation", errors);
   }
 
   if (!input.turnstileToken) {
@@ -285,6 +184,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       json,
       400,
       "Please complete the verification check and try again.",
+      "verification",
     );
   }
 
@@ -293,6 +193,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       json,
       500,
       "Contact form is temporarily unavailable. Please try again later.",
+      "unavailable",
     );
   }
 
@@ -302,7 +203,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     request.headers.get("CF-Connecting-IP"),
   );
   if (!verified) {
-    return respondError(json, 400, "Verification failed. Please try again.");
+    return respondError(json, 400, "Verification failed. Please try again.", "verification");
   }
 
   const prefix = env.SITE_ENV === "production" ? "" : "[preview] ";
@@ -323,6 +224,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       json,
       502,
       "Could not send your message right now. Please try again later.",
+      "unavailable",
     );
   }
 

@@ -335,9 +335,17 @@ describe("sitemap and robots.txt", () => {
     expect(urls).toHaveLength(3);
     expect(urls.join("\n")).not.toContain("wip");
     expect(urls.join("\n")).not.toContain("404");
+    expect(urls.join("\n")).not.toContain("/contact/");
     for (const url of urls) {
       expect(url).not.toMatch(/\.html$/);
       if (url !== "https://dhaivat.dev/") expect(url).not.toMatch(/\/$/);
+    }
+
+    for (const route of ["/contact/sent", "/contact/error"]) {
+      const html = build.page(route);
+      expect(html).not.toBeNull();
+      expect(html).toContain('<meta name="robots" content="noindex">');
+      expect(html).not.toContain('<link rel="canonical"');
     }
   });
 

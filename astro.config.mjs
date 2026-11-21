@@ -13,5 +13,12 @@ export default defineConfig({
   build: { format: "file" },
   // Code excerpts in Deep dives render as dark blocks in both themes.
   markdown: { shikiConfig: { theme: "github-dark" } },
-  integrations: [mdx(), react(), sitemap(), architectureDiagramCheck()],
+  integrations: [
+    mdx(),
+    react(),
+    sitemap({
+      filter: (page) => !new URL(page).pathname.startsWith("/contact/"),
+    }),
+    architectureDiagramCheck(),
+  ],
 });

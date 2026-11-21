@@ -314,7 +314,7 @@ test.describe("Contact form", () => {
     expect(events).toEqual(["contact-sent"]);
   });
 
-  test("with JS disabled, submitting the form shows an HTML result page", async ({
+  test("with JS disabled, submitting the form redirects to /contact/error with verification guidance", async ({
     browser,
     baseURL,
   }) => {
@@ -327,25 +327,31 @@ test.describe("Contact form", () => {
       await section.getByLabel("Email").fill("ada@example.test");
       await section.getByLabel("Message").fill("Hello without JS!");
 
-      const [response] = await Promise.all([
+      const [postResponse] = await Promise.all([
         page.waitForResponse((r) => r.url().endsWith("/api/contact") && r.request().method() === "POST"),
         section.getByRole("button", { name: /send/i }).click(),
       ]);
 
-      expect(response.headers()["content-type"]).toContain("text/html");
+      expect(postResponse.status()).toBe(303);
+      expect(postResponse.headers()["location"]).toBe("/contact/error?reason=verification");
+
+      await expect(page).toHaveURL(/\/contact\/error(?:\?reason=verification)?$/);
       await expect(page.locator("html")).toHaveAttribute("lang", "en");
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Message not sent.");
+      await expect(page.locator("main")).toContainText(/javascript|verification/i);
       await expect(page.getByRole("link", { name: /back/i })).toHaveAttribute("href", "/#contact");
     } finally {
       await context.close();
     }
   });
 
-  test("plain HTML form POST with valid token returns an HTML confirmation page", async ({
+  test("plain HTML form POST with valid token redirects 303 to /contact/sent", async ({
     request,
   }) => {
     const res = await request.post("/api/contact", {
       headers: { Accept: "text/html" },
+      maxRedirects: 0,
       form: {
         name: "Ada Lovelace",
         email: "ada@example.test",
@@ -353,12 +359,32 @@ test.describe("Contact form", () => {
         "cf-turnstile-response": "XXXX.DUMMY.TOKEN.XXXX",
       },
     });
-    expect(res.status()).toBe(200);
-    expect(res.headers()["content-type"]).toContain("text/html");
-    const html = await res.text();
-    expect(html).toContain("<h1");
-    expect(html).toMatch(/sent/i);
+    expect(res.status()).toBe(303);
+    expect(res.headers()["location"]).toBe("/contact/sent");
+
+    const sentRes = await request.get("/contact/sent");
+    expect(sentRes.status()).toBe(200);
+    expect(sentRes.headers()["content-type"]).toContain("text/html");
+    const html = await sentRes.text();
+    expect(html).toContain('<meta name="robots" content="noindex">');
+    expect(html).toContain("Message sent.");
     expect(html).toContain('href="/#contact"');
     expect(html).not.toContain("test-recipient@example.invalid");
+  });
+
+  test("plain HTML form POST with invalid fields redirects 303 to /contact/error?reason=validation", async ({
+    request,
+  }) => {
+    const res = await request.post("/api/contact", {
+      headers: { Accept: "text/html" },
+      maxRedirects: 0,
+      form: {
+        name: "",
+        email: "not-an-email",
+        message: "",
+      },
+    });
+    expect(res.status()).toBe(303);
+    expect(res.headers()["location"]).toBe("/contact/error?reason=validation");
   });
 });

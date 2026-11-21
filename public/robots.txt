@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://dhaivat.dev/sitemap-index.xml

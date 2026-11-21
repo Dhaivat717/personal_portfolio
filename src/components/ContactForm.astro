@@ -1,4 +1,5 @@
 ---
+import { CONTACT_LIMITS } from "../contact";
 import { site } from "../settings";
 ---
 
@@ -15,7 +16,7 @@ import { site } from "../settings";
           name="name"
           type="text"
           autocomplete="name"
-          maxlength="120"
+          maxlength={CONTACT_LIMITS.name}
           required
         />
         <p id="contact-name-error" class="field-error" hidden></p>
@@ -28,7 +29,7 @@ import { site } from "../settings";
           name="email"
           type="email"
           autocomplete="email"
-          maxlength="254"
+          maxlength={CONTACT_LIMITS.email}
           required
         />
         <p id="contact-email-error" class="field-error" hidden></p>
@@ -40,7 +41,7 @@ import { site } from "../settings";
           id="contact-message"
           name="message"
           rows="5"
-          maxlength="5000"
+          maxlength={CONTACT_LIMITS.message}
           required
         ></textarea>
         <p id="contact-message-error" class="field-error" hidden></p>
@@ -65,26 +66,24 @@ import { site } from "../settings";
 
 <script>
   import { trackEvent } from "../analytics";
+  import { CONTACT_FIELDS, type ContactFieldName } from "../contact";
 
   const form = document.getElementById("contact-form") as HTMLFormElement | null;
   const statusEl = document.getElementById("contact-status");
   const submitBtn = form?.querySelector<HTMLButtonElement>('button[type="submit"]') ?? null;
 
-  const FIELDS = ["name", "email", "message"] as const;
-  type FieldName = (typeof FIELDS)[number];
-
   interface ContactResponse {
     ok: boolean;
     message?: string;
     error?: string;
-    errors?: Partial<Record<FieldName, string>>;
+    errors?: Partial<Record<ContactFieldName, string>>;
   }
 
   interface TurnstileWindow extends Window {
     turnstile?: { reset?: () => void };
   }
 
-  function setFieldError(field: FieldName, message: string | undefined) {
+  function setFieldError(field: ContactFieldName, message: string | undefined) {
     const input = document.getElementById(`contact-${field}`);
     const errEl = document.getElementById(`contact-${field}-error`);
     if (!input || !errEl) return;
@@ -117,7 +116,7 @@ import { site } from "../settings";
     // while keeping native HTML validation active when JS is disabled.
     form.noValidate = true;
 
-    for (const field of FIELDS) {
+    for (const field of CONTACT_FIELDS) {
       const input = document.getElementById(`contact-${field}`);
       input?.addEventListener("input", () => setFieldError(field, undefined));
     }
@@ -125,7 +124,7 @@ import { site } from "../settings";
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
 
-      for (const field of FIELDS) setFieldError(field, undefined);
+      for (const field of CONTACT_FIELDS) setFieldError(field, undefined);
       setStatus("", "idle");
 
       const originalLabel = submitBtn?.textContent ?? "Send message";
@@ -145,7 +144,7 @@ import { site } from "../settings";
         if (!res.ok || !data.ok) {
           let firstInvalid: HTMLElement | null = null;
           if (data.errors) {
-            for (const field of FIELDS) {
+            for (const field of CONTACT_FIELDS) {
               const msg = data.errors[field];
               setFieldError(field, msg);
               if (msg && !firstInvalid) {
