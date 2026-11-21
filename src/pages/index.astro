@@ -1,5 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
+import ContactForm from "../components/ContactForm.astro";
 import { site } from "../settings";
 ---
 
@@ -15,7 +16,7 @@ import { site } from "../settings";
   <!-- Placeholders: later tickets fill these Sections. -->
   <section id="experience"></section>
   <section id="projects"></section>
-  <section id="contact"></section>
+  <ContactForm />
 </Base>
 
 <style>
