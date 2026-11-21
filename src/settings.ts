@@ -18,10 +18,9 @@ export const site = {
   /** Canonical origin, no trailing slash. */
   origin: "https://dhaivat.dev",
   /**
-   * Turnstile site key (public). This is Cloudflare's always-pass test key
-   * until the production widget is created (launch checklist step 5).
+   * Turnstile site key (public) for the production widget (dhaivat.dev).
    */
-  turnstileSiteKey: "1x00000000000000000000AA",
+  turnstileSiteKey: "0x4AAAAAAGMNv4OkZcEnpc7M",
   /**
    * Public analytics identifiers (launch checklist step 4). Scripts render only
    * when `SITE_ENV=production`; `UMAMI_WEBSITE_ID` and `CF_WEB_ANALYTICS_TOKEN`
