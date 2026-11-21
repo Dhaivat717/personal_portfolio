@@ -9,13 +9,19 @@ export type Project = CollectionEntry<"projects">;
  * Drafts are included only when drafts are shown (see `showDrafts`); otherwise
  * they are absent entirely: no page and no row.
  *
- * Fails the build if two projects share an `order`.
+ * Fails the build if two projects share an `order` or more than 3 are featured.
  */
 export async function getProjects(): Promise<Project[]> {
   const all = await getCollection("projects");
   assertUniqueOrder(all);
+  assertFeaturedCap(all);
   const includeDrafts = showDrafts();
   return all.filter((p) => includeDrafts || !p.data.draft).sort((a, b) => a.data.order - b.data.order);
+}
+
+/** Featured Personal projects for the Home page Projects band, lowest `order` first. */
+export async function getFeaturedProjects(): Promise<Project[]> {
+  return (await getProjects()).filter((p) => p.data.featured);
 }
 
 /** Where a Personal project's Deep dive lives. */
@@ -43,5 +49,18 @@ function assertUniqueOrder(projects: Project[]): void {
     });
   if (clashes.length > 0) {
     throw new Error(`${clashes.join(" ")} Each project's order must be unique.`);
+  }
+}
+
+const MAX_FEATURED = 3;
+
+/** Checked across drafts too, so publishing a draft can never exceed the cap. */
+function assertFeaturedCap(projects: Project[]): void {
+  const featured = projects.filter((p) => p.data.featured);
+  if (featured.length > MAX_FEATURED) {
+    const names = featured.map((p) => `"${p.id}"`).sort();
+    throw new Error(
+      `At most ${MAX_FEATURED} Personal projects can be featured; found ${featured.length} (${names.join(", ")}).`,
+    );
   }
 }
