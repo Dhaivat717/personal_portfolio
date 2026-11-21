@@ -349,3 +349,27 @@ describe("sitemap and robots.txt", () => {
     expect(headers).toMatch(/^\s+X-Robots-Tag:\s*noindex$/m);
   });
 });
+
+describe("production-only analytics", () => {
+  test("omits Umami and Cloudflare Web Analytics scripts when SITE_ENV is not production", () => {
+    const build = buildWithFixture("valid");
+    expect(build.status).toBe(0);
+    for (const route of ["/", "/projects", "/projects/full"]) {
+      const html = build.page(route) ?? "";
+      expect(html).not.toContain("cloud.umami.is/script.js");
+      expect(html).not.toContain("static.cloudflareinsights.com/beacon.min.js");
+    }
+  });
+
+  test("renders Umami and Cloudflare Web Analytics scripts when SITE_ENV=production", () => {
+    const build = buildWithFixture("valid", { env: { SITE_ENV: "production" } });
+    expect(build.status).toBe(0);
+    for (const route of ["/", "/projects", "/projects/full"]) {
+      const html = build.page(route) ?? "";
+      expect(html).toMatch(/<script[^>]+src="https:\/\/cloud\.umami\.is\/script\.js"[^>]*data-website-id="[^"]+"/);
+      expect(html).toMatch(
+        /<script[^>]+src="https:\/\/static\.cloudflareinsights\.com\/beacon\.min\.js"[^>]*data-cf-beacon=/,
+      );
+    }
+  });
+});
