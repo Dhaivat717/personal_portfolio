@@ -37,3 +37,21 @@ test("there is exactly one h1 and the document language is English", async ({ pa
   await expect(page.locator("h1")).toHaveCount(1);
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 });
+
+test("Home Projects band shows Featured projects as rows and links to /projects", async ({ page }) => {
+  await page.goto("/");
+  const section = page.locator("#projects");
+  await expect(section.getByRole("heading", { level: 2 })).toHaveText("Projects.");
+
+  const row = section.getByRole("link", { name: /WhatsApp Auto-Wish Bot/ });
+  await expect(row).toHaveAttribute("href", "/projects/whatsapp-auto-wish-bot");
+  await expect(row.locator("svg")).toBeVisible();
+  await expect(row.getByRole("heading", { level: 3, name: "WhatsApp Auto-Wish Bot" })).toBeVisible();
+  await expect(row.getByRole("list", { name: "Stack" }).getByRole("listitem").first()).toBeVisible();
+  await expect(row).toContainText("read →");
+
+  const allProjects = section.getByRole("link", { name: "All projects →" });
+  await expect(allProjects).toHaveAttribute("href", "/projects");
+  await allProjects.click();
+  await expect(page).toHaveURL(/\/projects$/);
+});
