@@ -40,7 +40,10 @@ test.describe("compressed size budgets", () => {
         );
       });
 
-      await page.goto(route, { waitUntil: "networkidle" });
+      await page.goto(route, { waitUntil: "load" });
+      await page.waitForLoadState("networkidle", { timeout: 3_000 }).catch(() => {
+        // Third-party widgets (e.g. Cloudflare Turnstile) may keep background connections open.
+      });
       await Promise.all(pending);
 
       const evaluation = evaluateBudgets(category, resources, budgets);
