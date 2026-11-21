@@ -2,10 +2,12 @@
 /**
  * A Personal project's Deep dive: summary (title, pitch, meta strip, main
  * media), then the MDX body, whose h2s must be the spine (see deepDive.ts).
+ * The body can use `<Media>` (clips and images) without importing it.
  * A sticky table of contents lists those h2s; previous/next cards follow `order`.
  */
 import type { GetStaticPaths } from "astro";
 import { render } from "astro:content";
+import Media from "../../components/Media.astro";
 import MetaStrip from "../../components/MetaStrip.astro";
 import { spineHeadings, warnOnWordCount } from "../../deepDive";
 import Base from "../../layouts/Base.astro";
@@ -61,11 +63,7 @@ const pager = [
       <h1>{title}</h1>
       <p class="pitch">{pitch}</p>
       <MetaStrip project={project} />
-      {/* Main media slot. The Media component (clips, posters, pause button) replaces this. */}
-      <figure class="media">
-        <div class="frame" role="img" aria-label={media.alt}></div>
-        <figcaption>{media.caption}</figcaption>
-      </figure>
+      <Media src={media.src} poster={media.poster} alt={media.alt} caption={media.caption} priority />
     </header>
 
     <nav class="toc" aria-label="On this page">
@@ -82,7 +80,7 @@ const pager = [
     </nav>
 
     <article class="prose">
-      <Content />
+      <Content components={{ Media }} />
     </article>
 
     {
@@ -183,22 +181,6 @@ const pager = [
     font-size: 21px;
     line-height: 1.4;
     color: var(--muted);
-  }
-
-  .media {
-    margin: 32px 0 0;
-  }
-  .frame {
-    aspect-ratio: 16 / 9;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: var(--hover);
-  }
-  figcaption {
-    margin-top: 10px;
-    font-size: 14px;
-    color: var(--muted);
-    text-align: center;
   }
 
   .toc {

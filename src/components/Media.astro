@@ -1,0 +1,218 @@
+---
+/**
+ * A clip or image in a Deep dive's reading column: a framed container with a
+ * caption. The page passes it to the MDX as `<Media>`, and the summary's main
+ * media uses it too.
+ *
+ * - Image: an imported image next to the MDX (`import shot from "./x.png"`),
+ *   optimized by Astro.
+ * - Clip: a file name in `public/<slug>/` (`src="results-demo.mp4"`; a sibling
+ *   `.webm` is found too) plus a required poster image. Muted and looping. Only
+ *   the poster loads up front; the clip downloads when scrolled near, plays in
+ *   view and pauses out of view, with a pause/play button. Under reduced
+ *   motion it stays on the poster until the Visitor presses play. Without JS
+ *   the poster shows.
+ *
+ * Fails the build on a missing alt or caption, a clip with no poster, or a
+ * clip file that's missing or over the cap (see media.ts).
+ */
+import type { ImageMetadata } from "astro";
+import { getImage, Image } from "astro:assets";
+import { clipSources, isClipName } from "../media";
+import Icon from "./Icon.astro";
+
+interface Props {
+  src: ImageMetadata | string;
+  poster?: ImageMetadata;
+  alt: string;
+  caption: string;
+  /** The summary's main media: load the image eagerly, it's likely the LCP. */
+  priority?: boolean;
+}
+
+const { src, poster, alt, caption, priority = false } = Astro.props;
+const project = Astro.params.slug;
+if (!project) throw new Error("Media is only for Deep dive pages (/projects/<slug>).");
+
+/**
+ * The reading column is at most --narrow (734px) wide, inside the page's 22px
+ * gutters (global.css), so 1x and 2x screens need at most 1468px.
+ */
+const MAX_WIDTH = 1468;
+const sizes = "(min-width: 778px) 734px, calc(100vw - 44px)";
+
+const missing = [!alt?.trim() && "alt", !caption?.trim() && "caption"].filter(Boolean);
+if (missing.length > 0) {
+  const name = typeof src === "string" ? src : "an image";
+  throw new Error(`Personal project "${project}" has media (${name}) with no ${missing.join(" or ")}. Every Media needs both.`);
+}
+
+let media:
+  | { kind: "clip"; sources: ReturnType<typeof clipSources>; posterSrc: string; ratio: string }
+  | { kind: "image"; image: ImageMetadata };
+
+if (typeof src === "string") {
+  if (!isClipName(src)) {
+    throw new Error(
+      `Personal project "${project}" passes "${src}" to Media: a string src must be a clip (.mp4/.webm); import images instead.`,
+    );
+  }
+  if (!poster) {
+    throw new Error(`Personal project "${project}" has clip "${src}" with no poster. Every clip needs one.`);
+  }
+  const optimizedPoster = await getImage({ src: poster, width: Math.min(poster.width, MAX_WIDTH), format: "webp" });
+  media = {
+    kind: "clip",
+    sources: clipSources(project, src),
+    posterSrc: optimizedPoster.src,
+    ratio: `${poster.width} / ${poster.height}`,
+  };
+} else {
+  media = { kind: "image", image: src };
+}
+---
+
+<figure class="media">
+  {
+    media.kind === "clip" ? (
+      <div class="frame" style={{ aspectRatio: media.ratio }}>
+        <video data-clip muted loop playsinline preload="none" poster={media.posterSrc} aria-label={alt}>
+          {media.sources.map((s) => (
+            <source data-src={s.url} type={s.type} />
+          ))}
+        </video>
+        <button type="button" class="toggle" data-clip-toggle aria-label="Pause clip" hidden>
+          <span class="when-playing"><Icon name="pause" /></span>
+          <span class="when-paused"><Icon name="play" /></span>
+        </button>
+      </div>
+    ) : (
+      <div class="frame">
+        <Image
+          src={media.image}
+          alt={alt}
+          widths={[...new Set([MAX_WIDTH / 2, MAX_WIDTH].map((w) => Math.min(w, media.image.width)))]}
+          sizes={sizes}
+          loading={priority ? "eager" : "lazy"}
+          fetchpriority={priority ? "high" : undefined}
+        />
+      </div>
+    )
+  }
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<script>
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  for (const video of document.querySelectorAll<HTMLVideoElement>("video[data-clip]")) {
+    const button = video.parentElement?.querySelector<HTMLButtonElement>("[data-clip-toggle]");
+    if (!button) continue;
+
+    // Whether the clip should play when in view: yes unless reduced motion,
+    // until the Visitor says otherwise with the button.
+    let wanted = !reducedMotion;
+    let inView = false;
+    let loaded = false;
+
+    const load = () => {
+      if (loaded) return;
+      loaded = true;
+      for (const source of video.querySelectorAll("source")) source.src = source.dataset.src ?? "";
+      video.load();
+    };
+
+    const sync = () => {
+      if (wanted && inView) {
+        load();
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+      button.setAttribute("aria-label", wanted ? "Pause clip" : "Play clip");
+      button.dataset.state = wanted ? "playing" : "paused";
+    };
+
+    // Start downloading a little before the clip scrolls into view.
+    new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && wanted) load();
+      },
+      { rootMargin: "300px 0px" },
+    ).observe(video);
+
+    new IntersectionObserver(
+      ([entry]) => {
+        inView = entry.isIntersecting;
+        sync();
+      },
+      { threshold: 0.25 },
+    ).observe(video);
+
+    button.addEventListener("click", () => {
+      wanted = !wanted;
+      sync();
+    });
+    button.hidden = false;
+    sync();
+  }
+</script>
+
+<style>
+  .media {
+    margin: 32px 0 0;
+  }
+  .frame {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--hover);
+  }
+  .frame video,
+  .frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .frame video {
+    height: 100%;
+    object-fit: cover;
+  }
+  .toggle {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    color: var(--fg-strong);
+    cursor: pointer;
+  }
+  .toggle[hidden] {
+    display: none;
+  }
+  .toggle :global(svg) {
+    width: 18px;
+    height: 18px;
+  }
+  .toggle[data-state="playing"] .when-paused,
+  .toggle[data-state="paused"] .when-playing {
+    display: none;
+  }
+  .when-playing,
+  .when-paused {
+    display: grid;
+  }
+  figcaption {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+  }
+</style>

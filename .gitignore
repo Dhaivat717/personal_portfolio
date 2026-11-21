@@ -8,3 +8,8 @@ playwright-report/
 .lighthouseci/
 tests/build/.out/
 .claude/worktrees/
+
+# Sized media the build tests write just before building.
+tests/build/fixtures/clip-size/public/sized/hero.mp4
+tests/build/fixtures/image-size/sized/hero.jpg
+tests/build/fixtures/body-image-size/sized/approach-shot.jpg

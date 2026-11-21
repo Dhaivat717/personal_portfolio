@@ -22,6 +22,7 @@ Astro renders every page to plain HTML at build time. Nothing is server-rendered
 - **Fonts:** two self-hosted subset `woff2` files (Inter for text, JetBrains Mono for code), served with `font-display: swap`.
 - **Content:** each Personal project is one folder in the `projects` content collection. The folder name is the URL slug. Adding a folder adds a row on `/projects` and a Deep dive at `/projects/<slug>`, with no layout changes. Lowest `order` comes first everywhere. _(planned)_ Experience data (Work highlights) is data the pages read, not hard-coded markup.
 - **Personal project frontmatter** is strict: an unknown field fails the build. Fields: `title`, `pitch` (≤ 120 characters), `when` (free text), `stack` (list), `builtOn?` `{ name, author, url }`, `links` `{ code, play?: [{ label, url }] }`, `order` (number, unique across all projects, drafts included), `featured`, `icon` (a [Lucide](https://lucide.dev/icons) name), `media` `{ src, poster?, caption, alt }`, `draft?`.
+- **Media** (`src/components/Media.astro`, rules in `src/media.ts`): the summary's main media and any `<Media>` in a Deep dive's body (no import needed) render in a framed figure with a caption. Images sit next to the MDX (`hero.png`, or `import shot from "./approach-shot.png"` in the body) so Astro optimizes them. Clips live in `public/<slug>/` (`hero.mp4`, plus `hero.webm` if present) and need a poster image next to the MDX (`hero-poster.jpg`). Other names are `<section>-<what>.<ext>`. A clip is muted and looping: only the poster loads up front, the clip downloads when scrolled near, plays in view, pauses out of view and always has a pause/play button. Under reduced motion it stays on the poster until the Visitor presses play; without JS the poster shows. The build fails on a missing media file, a clip over 4 MB, a source image over 1 MB (decimal MB), a missing alt or caption, or a clip with no poster.
 - **Drafts** (`draft: true`) render in local dev and on preview deploys. With `SITE_ENV=production` or `SHOW_DRAFTS=false` they are absent entirely: no page and no row.
 - **Dynamic bits** _(planned)_: two Cloudflare Pages Functions, `/api/contact` (contact form with Turnstile and `send_email`) and `/api/github-stats` (contributions count). Everything else stays static.
 
@@ -30,7 +31,7 @@ Astro renders every page to plain HTML at build time. Nothing is server-rendered
 A request for `/` is served straight from `dist/index.html`. At build time, that file was produced like this:
 
 1. **`astro.config.mjs`** sets static output, `trailingSlash: 'never'`, the site origin (from `settings.ts`), and the MDX and React integrations.
-2. **`src/content.config.ts`** registers the `projects` collection and its strict schema. Its glob loader reads `src/content/projects/*/index.{md,mdx}`, or the folder in `PROJECTS_DIR` when the build tests point it at fixtures. Pages read projects only through **`src/projects.ts`** (`getProjects()`), which drops drafts when they are off, sorts by `order` and fails the build on a duplicate `order`.
+2. **`src/content.config.ts`** registers the `projects` collection and its strict schema. Its glob loader reads `src/content/projects/*/index.{md,mdx}`, or the folder in `PROJECTS_DIR` when the build tests point it at fixtures. After each load it checks every project's media files (see Media above); `PUBLIC_DIR` likewise points the public folder at a fixture's. Pages read projects only through **`src/projects.ts`** (`getProjects()`), which drops drafts when they are off, sorts by `order` and fails the build on a duplicate `order`.
 3. **`src/pages/*.astro`**: each file is a route. A page imports `settings.ts` for its data and wraps its content in the base layout.
 4. **`src/layouts/Base.astro`** renders the HTML shell for every page:
    - `<html lang="en">`, title, description and an optional `noindex`
@@ -46,16 +47,16 @@ A request for `/` is served straight from `dist/index.html`. At build time, that
 | Path | What it is |
 | --- | --- |
 | `src/settings.ts` | **Site settings module:** the one source for name, role, employer, links, origin, Turnstile site key. |
-| `src/pages/` | Routes. `index.astro` is the Home page (hero plus `#experience`, `#projects`, `#contact` Section anchors); `404.astro` is the noindexed Not Found page; `projects/index.astro` lists every Personal project; `projects/[slug].astro` is a Deep dive (title, pitch and body for now). _(planned)_ `og/*.png` social cards. |
+| `src/pages/` | Routes. `index.astro` is the Home page (hero plus `#experience`, `#projects`, `#contact` Section anchors); `404.astro` is the noindexed Not Found page; `projects/index.astro` lists every Personal project; `projects/[slug].astro` is a Deep dive (summary with main media, table of contents, body, previous/next). _(planned)_ `og/*.png` social cards. |
 | `src/layouts/Base.astro` | Shared page shell: lang, meta, skip link, nav, `<main>`, footer. |
-| `src/components/` | Reusable Astro components (`Nav.astro`, `ThemeToggle.astro`, `Footer.astro`, `ProjectRow.astro`, `Icon.astro`). React islands go here too, only where interactivity is needed. |
+| `src/components/` | Reusable Astro components (`Nav.astro`, `ThemeToggle.astro`, `Footer.astro`, `ProjectRow.astro`, `Icon.astro`, `Media.astro`). React islands go here too, only where interactivity is needed. |
 | `src/styles/global.css` | `@font-face`, the light/dark **color tokens**, base styles, the `:focus-visible` ring (2px solid accent, 2px offset), layout widths. |
-| `src/content.config.ts` | Content collections. `projects` loads one folder per Personal project, with a strict schema. _(planned)_ the remaining build-time content checks (h2 spine, featured cap, media). |
+| `src/content.config.ts` | Content collections. `projects` loads one folder per Personal project, with a strict schema. Media files are checked here too (`src/media.ts`). _(planned)_ the featured cap. |
 | `src/projects.ts` | **Projects module:** `getProjects()`, the one way pages read Personal projects (drafts, ordering, unique `order`). |
 | `src/icons.ts` | The shared icon set (Lucide, via `@iconify-json/lucide`): name check and SVG markup. |
 | `src/content/projects/` | Personal project folders: `<slug>/index.mdx` plus images next to it. |
-| `public/` | Files copied as-is into `dist/` (fonts and `resume.pdf` today; _(planned)_ project clips under `public/<slug>/`, `_headers`). |
-| `tests/build/` | **Seam 1:** runs the real production build against fixture content in `tests/build/fixtures/<name>/` (optionally with `SITE_ENV`/`SHOW_DRAFTS` overrides) and checks the exit status, the output and the built pages. |
+| `public/` | Files copied as-is into `dist/` (fonts, `resume.pdf` and project clips under `public/<slug>/`; _(planned)_ `_headers`). |
+| `tests/build/` | **Seam 1:** runs the real production build against fixture content in `tests/build/fixtures/<name>/` (optionally with `SITE_ENV`/`SHOW_DRAFTS` overrides) and checks the exit status, the output and the built pages. A fixture's clips go in `tests/build/fixtures/<name>/public/<slug>/`. |
 | `tests/site/` | **Seam 2:** Playwright and plain HTTP tests against `dist/` served by `wrangler pages dev`, Cloudflare's local runtime. |
 | `.github/workflows/ci.yml` | The CI workflow that runs on every PR. |
 | `prototype/visual-design/` | Throwaway visual reference (variant D is the chosen design). Not part of the build. |
@@ -84,8 +85,8 @@ npm run build && npm test         # Seam 1, then Seam 2
 
 Tests check only what a Visitor or the owner can observe: HTTP status, rendered pages, and whether the build passes and what it prints. They never check component internals.
 
-- `npm run test:build` (Seam 1, vitest): each test builds the site into a temp folder with `PROJECTS_DIR` pointing at a fixture, then checks the exit status, the message and, where relevant, the built pages (e.g. that a draft is absent). Add one passing and one failing fixture per content rule.
-- `npm run test:site` (Seam 2, Playwright): starts `wrangler pages dev dist` and checks routes, structure, keyboard behavior and both themes. **Build first.** This seam tests whatever is in `dist/`.
+- `npm run test:build` (Seam 1, vitest): each test builds the site into a temp folder with `PROJECTS_DIR` pointing at a fixture, then checks the exit status, the message and, where relevant, the built pages (e.g. that a draft is absent). Add one passing and one failing fixture per content rule. The media size-cap tests write their large files just before building (they're gitignored), so the repo never holds multi-megabyte fixtures.
+- `npm run test:site` (Seam 2, Playwright): starts `wrangler pages dev dist` and checks routes, structure, keyboard behavior, both themes, clip behavior (lazy loading, pause/play, reduced motion, no JS) and the Deep dive JS and first-load budgets. **Build first.** This seam tests whatever is in `dist/`.
 
 ## Deployment
 

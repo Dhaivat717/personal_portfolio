@@ -25,7 +25,8 @@ export interface BuildOptions {
 
 /**
  * Seam 1: run the production build against a fixture content directory
- * (`tests/build/fixtures/<name>`) and report its exit status, output and pages.
+ * (`tests/build/fixtures/<name>`, with its clips in that folder's `public/<slug>/`)
+ * and report its exit status, output and pages.
  */
 export function buildWithFixture(fixture: string, { env = {} }: BuildOptions = {}): BuildResult {
   const outDir = mkdtempSync(join(tmpdir(), "portfolio-build-"));
@@ -38,6 +39,8 @@ export function buildWithFixture(fixture: string, { env = {} }: BuildOptions = {
       SITE_ENV: undefined,
       ...env,
       PROJECTS_DIR: resolve(root, "tests/build/fixtures", fixture),
+      // A fixture's clips live in its own public folder, under each project's slug.
+      PUBLIC_DIR: resolve(root, "tests/build/fixtures", fixture, "public"),
       NO_COLOR: "1",
     };
     const childEnv = Object.fromEntries(
