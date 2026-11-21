@@ -27,10 +27,26 @@ interface Props {
 }
 
 const { project, previous, next } = Astro.props;
-const { title, pitch, media } = project.data;
+const { title, pitch, stack, links, media } = project.data;
 const { Content, headings } = await render(project);
 const toc = spineHeadings(project, headings);
 warnOnWordCount(project);
+
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  name: title,
+  description: pitch,
+  url: new URL(projectHref(project), site.origin).href,
+  codeRepository: links.code,
+  programmingLanguage: stack,
+  author: {
+    "@type": "Person",
+    "@id": `${site.origin}/#person`,
+    name: site.name,
+    url: site.origin,
+  },
+};
 
 const pager = [
   previous && { rel: "prev", label: "Previous", project: previous },
@@ -38,7 +54,7 @@ const pager = [
 ].filter((card) => !!card);
 ---
 
-<Base title={`${title} · ${site.name}`} description={pitch}>
+<Base title={`${title} · ${site.name}`} description={pitch} jsonLd={softwareJsonLd}>
   <div class="wrap deep-dive">
     <header class="summary">
       <a class="back" href="/projects">← Projects</a>
@@ -84,6 +100,29 @@ const pager = [
     }
   </div>
 </Base>
+
+<script>
+  import { trackEvent } from "../../analytics";
+
+  const sentinel =
+    document.getElementById("what-i-learned") ?? document.getElementById("results");
+
+  if (sentinel && "IntersectionObserver" in window) {
+    let fired = false;
+    const observer = new IntersectionObserver((entries) => {
+      if (fired) return;
+      for (const entry of entries) {
+        if (entry.isIntersecting || entry.boundingClientRect.top < 0) {
+          fired = true;
+          trackEvent("deep-dive-read");
+          observer.disconnect();
+          break;
+        }
+      }
+    });
+    observer.observe(sentinel);
+  }
+</script>
 
 <style>
   .deep-dive {

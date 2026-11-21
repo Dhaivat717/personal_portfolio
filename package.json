@@ -11,12 +11,17 @@
     "check": "astro check",
     "serve": "wrangler pages dev dist --port 8788",
     "test:build": "vitest run",
+    "test:contrast": "vitest run tests/unit/token-contrast.test.ts",
+    "test:axe": "playwright test tests/site/axe.spec.ts",
+    "test:budgets": "playwright test tests/site/budgets.spec.ts",
+    "test:lighthouse": "lhci autorun",
     "test:site": "playwright test",
     "test": "npm run test:build && npm run test:site"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.1.6",
     "@astrojs/react": "^7.1.9",
+    "@astrojs/sitemap": "^3.7.6",
     "@iconify-json/lucide": "^1.2.155",
     "astro": "^7.4.12",
     "react": "^19.3.1",
@@ -24,6 +29,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
+    "@axe-core/playwright": "^4.14.0",
+    "@lhci/cli": "^0.16.1",
     "@playwright/test": "^1.65.1",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",

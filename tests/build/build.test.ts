@@ -39,6 +39,56 @@ describe("Personal projects", () => {
   });
 });
 
+/** The Home page's `#projects` section markup. */
+function homeProjectsSection(html: string | null): string {
+  return html?.match(/<section[^>]*id="projects"[^>]*>([\s\S]*?)<\/section>/)?.[1] ?? "";
+}
+
+describe("Home page Projects band", () => {
+  test("shows up to 3 featured projects lowest order first, excludes non-featured, and links to /projects", () => {
+    const build = buildWithFixture("featured");
+    expect(build.status).toBe(0);
+
+    const band = homeProjectsSection(build.page("/"));
+    expect(band).toMatch(/<h2[^>]*>Projects\.<\/h2>/);
+
+    const rowHrefs = [...band.matchAll(/<a[^>]*href="(\/projects\/[^"]+)"/g)].map((m) => m[1]);
+    expect(rowHrefs).toEqual(["/projects/zeta", "/projects/mid", "/projects/alpha"]);
+    expect(band).not.toContain("/projects/unfeatured");
+    expect(band).not.toContain("Unfeatured Project");
+
+    // Headings inside the Home band are h3 (under the band's h2).
+    const rowHeadings = [...band.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)].map((m) => m[1]);
+    expect(rowHeadings).toEqual(["Zeta Project", "Mid Project", "Alpha Project"]);
+
+    // Ends with "All projects →" linking to /projects.
+    expect(band).toMatch(/<a[^>]*href="\/projects"[^>]*>\s*All projects →\s*<\/a>/);
+
+    // Non-featured project still appears on /projects.
+    expect(build.page("/projects")).toContain('href="/projects/unfeatured"');
+  });
+
+  test("follows the draft production/preview rule", () => {
+    const shown = buildWithFixture("drafts", { env: { SITE_ENV: undefined, SHOW_DRAFTS: undefined } });
+    expect(shown.status).toBe(0);
+    const shownBand = homeProjectsSection(shown.page("/"));
+    expect(shownBand).toContain('href="/projects/published"');
+    expect(shownBand).toContain('href="/projects/wip"');
+
+    for (const env of [
+      { SITE_ENV: "production", SHOW_DRAFTS: undefined },
+      { SITE_ENV: undefined, SHOW_DRAFTS: "false" },
+    ]) {
+      const hidden = buildWithFixture("drafts", { env });
+      expect(hidden.status).toBe(0);
+      const hiddenBand = homeProjectsSection(hidden.page("/"));
+      expect(hiddenBand).toContain('href="/projects/published"');
+      expect(hiddenBand).not.toContain("/projects/wip");
+      expect(hiddenBand).not.toContain("Work In Progress");
+    }
+  });
+});
+
 /** The nav's Projects drop-down entries on a built page, in order, as [href, text]. */
 function navProjects(html: string | null): [string, string][] {
   const list = html?.match(/id="nav-projects"[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? "";
@@ -111,6 +161,15 @@ describe("Personal project schema", () => {
     expect(status).not.toBe(0);
     expect(output).toContain("projects → bad-icon");
     expect(output).toMatch(/"not-a-real-icon" is not a Lucide icon name/);
+  });
+
+  test("more than 3 featured projects fail the build with a clear message", () => {
+    const { status, output } = buildWithFixture("too-many-featured");
+    expect(status).not.toBe(0);
+    expect(output).toMatch(/at most 3/i);
+    expect(output).toMatch(/featured/i);
+    expect(output).toContain('"f1"');
+    expect(output).toContain('"f4"');
   });
 });
 
@@ -244,5 +303,81 @@ describe("a Deep dive page", () => {
     expect(linksIn(build.page("/projects/full")!, "More projects")).toEqual([
       ["/projects/minimal", "Previous Minimal Project Only the required fields."],
     ]);
+  });
+});
+
+/** Extract all `<loc>` values from a sitemap XML document. */
+function sitemapLocs(xml: string | null): string[] {
+  if (!xml) return [];
+  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+}
+
+describe("sitemap and robots.txt", () => {
+  test("production build lists every published page without trailing slashes or drafts, and robots.txt references it", () => {
+    const build = buildWithFixture("drafts", { env: { SITE_ENV: "production", SHOW_DRAFTS: undefined } });
+    expect(build.status).toBe(0);
+
+    const robots = build.file("robots.txt");
+    expect(robots).toContain("User-agent: *");
+    expect(robots).toContain("Allow: /");
+    expect(robots).toContain("Sitemap: https://dhaivat.dev/sitemap-index.xml");
+
+    expect(sitemapLocs(build.file("sitemap-index.xml"))).toEqual(["https://dhaivat.dev/sitemap-0.xml"]);
+
+    const urls = sitemapLocs(build.file("sitemap-0.xml"));
+    expect(urls).toEqual(
+      expect.arrayContaining([
+        "https://dhaivat.dev/",
+        "https://dhaivat.dev/projects",
+        "https://dhaivat.dev/projects/published",
+      ]),
+    );
+    expect(urls).toHaveLength(3);
+    expect(urls.join("\n")).not.toContain("wip");
+    expect(urls.join("\n")).not.toContain("404");
+    expect(urls.join("\n")).not.toContain("/contact/");
+    for (const url of urls) {
+      expect(url).not.toMatch(/\.html$/);
+      if (url !== "https://dhaivat.dev/") expect(url).not.toMatch(/\/$/);
+    }
+
+    for (const route of ["/contact/sent", "/contact/error"]) {
+      const html = build.page(route);
+      expect(html).not.toBeNull();
+      expect(html).toContain('<meta name="robots" content="noindex">');
+      expect(html).not.toContain('<link rel="canonical"');
+    }
+  });
+
+  test("includes a _headers rule adding X-Robots-Tag: noindex on the pages.dev alias", () => {
+    const build = buildWithFixture("valid");
+    expect(build.status).toBe(0);
+    const headers = build.file("_headers");
+    expect(headers).toMatch(/^https:\/\/[^\s]+\.pages\.dev\/\*$/m);
+    expect(headers).toMatch(/^\s+X-Robots-Tag:\s*noindex$/m);
+  });
+});
+
+describe("production-only analytics", () => {
+  test("omits Umami and Cloudflare Web Analytics scripts when SITE_ENV is not production", () => {
+    const build = buildWithFixture("valid");
+    expect(build.status).toBe(0);
+    for (const route of ["/", "/projects", "/projects/full"]) {
+      const html = build.page(route) ?? "";
+      expect(html).not.toContain("cloud.umami.is/script.js");
+      expect(html).not.toContain("static.cloudflareinsights.com/beacon.min.js");
+    }
+  });
+
+  test("renders Umami and Cloudflare Web Analytics scripts when SITE_ENV=production", () => {
+    const build = buildWithFixture("valid", { env: { SITE_ENV: "production" } });
+    expect(build.status).toBe(0);
+    for (const route of ["/", "/projects", "/projects/full"]) {
+      const html = build.page(route) ?? "";
+      expect(html).toMatch(/<script[^>]+src="https:\/\/cloud\.umami\.is\/script\.js"[^>]*data-website-id="[^"]+"/);
+      expect(html).toMatch(
+        /<script[^>]+src="https:\/\/static\.cloudflareinsights\.com\/beacon\.min\.js"[^>]*data-cf-beacon=/,
+      );
+    }
   });
 });

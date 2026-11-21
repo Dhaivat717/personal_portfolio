@@ -37,8 +37,14 @@ const { when, stack, builtOn, links } = Astro.props.project.data;
   <div>
     <dt>Links</dt>
     <dd class="links">
-      <a href={links.code}>Code ↗</a>
-      {links.play?.map((play) => <a href={play.url}>{play.label} ↗</a>)}
+      <a href={links.code} data-outbound-target="code-repo">Code ↗</a>
+      {
+        links.play?.map((play) => (
+          <a href={play.url} data-outbound-target={/\.?itch\.io$/i.test(new URL(play.url).hostname) ? "itch" : undefined}>
+            {play.label} ↗
+          </a>
+        ))
+      }
     </dd>
   </div>
 </dl>

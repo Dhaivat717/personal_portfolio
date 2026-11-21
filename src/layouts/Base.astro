@@ -2,15 +2,26 @@
 import "../styles/global.css";
 import Footer from "../components/Footer.astro";
 import Nav from "../components/Nav.astro";
+import { site } from "../settings";
 
 interface Props {
   title: string;
   description?: string;
   /** Keep this page out of search indexes (e.g. the 404 page). */
   noindex?: boolean;
+  /** Structured data serialized as `<script type="application/ld+json">`. */
+  jsonLd?: Record<string, unknown>;
 }
 
-const { title, description, noindex = false } = Astro.props;
+const { title, description, noindex = false, jsonLd } = Astro.props;
+// With build.format "file", Astro.url.pathname ends in ".html" during build.
+const pathname = Astro.url.pathname.replace(/(index)?\.html$/, "").replace(/(.)\/$/, "$1") || "/";
+const canonicalUrl = new URL(pathname, site.origin).href;
+
+const isProduction = process.env.SITE_ENV === "production";
+const umamiWebsiteId = process.env.UMAMI_WEBSITE_ID || site.analytics.umamiWebsiteId;
+const cloudflareBeaconToken = process.env.CF_WEB_ANALYTICS_TOKEN || site.analytics.cloudflareBeaconToken;
+const analyticsDomain = new URL(site.origin).hostname;
 ---
 
 <!doctype html>
@@ -30,9 +41,31 @@ const { title, description, noindex = false } = Astro.props;
       } catch {}
     </script>
     <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     {description && <meta name="description" content={description} />}
+    {!noindex && <link rel="canonical" href={canonicalUrl} />}
     {noindex && <meta name="robots" content="noindex" />}
+    {jsonLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")} />}
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+    {
+      isProduction && (
+        <>
+          <script
+            is:inline
+            defer
+            src={site.analytics.umamiSrc}
+            data-website-id={umamiWebsiteId}
+            data-domains={analyticsDomain}
+          />
+          <script
+            is:inline
+            defer
+            src={site.analytics.cloudflareBeaconSrc}
+            data-cf-beacon={JSON.stringify({ token: cloudflareBeaconToken })}
+          />
+        </>
+      )
+    }
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -41,6 +74,25 @@ const { title, description, noindex = false } = Astro.props;
       <slot />
     </main>
     <Footer />
+    <script>
+      import { classifyOutboundTarget, trackEvent } from "../analytics";
+
+      document.addEventListener("click", (event) => {
+        const link = (event.target as Element | null)?.closest<HTMLAnchorElement>("a[href]");
+        if (!link) return;
+
+        const rawHref = link.getAttribute("href") ?? "";
+        if (rawHref === "/resume.pdf" || link.dataset.analyticsEvent === "resume-download") {
+          trackEvent("resume-download");
+          return;
+        }
+
+        const target = classifyOutboundTarget(link);
+        if (target) {
+          trackEvent("outbound-click", { target });
+        }
+      });
+    </script>
   </body>
 </html>
 

@@ -38,6 +38,18 @@ jobs:
           path: dist
           retention-days: 3
 
+  contrast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Token-contrast checks
+        run: npm run test:contrast
+
   site:
     needs: build
     runs-on: ubuntu-latest
@@ -54,4 +66,57 @@ jobs:
           path: dist
       - run: npx playwright install --with-deps chromium
       - name: Site tests (Seam 2, against wrangler pages dev)
-        run: npm run test:site
+        run: npx playwright test --grep-invert "(axe accessibility audit|compressed size budgets)"
+
+  axe:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - run: npx playwright install --with-deps chromium
+      - name: axe-core accessibility audit
+        run: npm run test:axe
+
+  budgets:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - run: npx playwright install --with-deps chromium
+      - name: Compressed size budgets
+        run: npm run test:budgets
+
+  lighthouse:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Lighthouse CI
+        run: npm run test:lighthouse

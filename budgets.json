@@ -1,0 +1,14 @@
+{
+  "home": {
+    "jsKb": 60,
+    "firstLoadKb": 500
+  },
+  "projects": {
+    "jsKb": 15,
+    "firstLoadKb": 800
+  },
+  "deepDive": {
+    "jsKb": 15,
+    "firstLoadKb": 800
+  }
+}

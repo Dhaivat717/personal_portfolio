@@ -11,6 +11,8 @@ export interface BuildResult {
   output: string;
   /** The built HTML for a route such as `/projects`, or null if it wasn't built. */
   page(route: string): string | null;
+  /** A built text file by relative path (e.g. `sitemap-0.xml`, `robots.txt`, `_headers`), or null if absent. */
+  file(path: string): string | null;
 }
 
 export interface BuildOptions {
@@ -47,18 +49,24 @@ export function buildWithFixture(fixture: string, { env = {} }: BuildOptions = {
       env: childEnv,
     });
 
-    // Read the built pages now; the temp folder is deleted on return.
+    // Read the built pages and text metadata files now; the temp folder is deleted on return.
     const pages = new Map<string, string>();
+    const files = new Map<string, string>();
     for (const file of readdirSync(outDir, { recursive: true, encoding: "utf8" })) {
-      if (!file.endsWith(".html")) continue;
-      const route = `/${file.replace(/\\/g, "/").replace(/(index)?\.html$/, "")}`.replace(/(.)\/$/, "$1");
-      pages.set(route, readFileSync(join(outDir, file), "utf8"));
+      const normalized = file.replace(/\\/g, "/");
+      if (normalized.endsWith(".html")) {
+        const route = `/${normalized.replace(/(index)?\.html$/, "")}`.replace(/(.)\/$/, "$1");
+        pages.set(route, readFileSync(join(outDir, file), "utf8"));
+      } else if (normalized.endsWith(".xml") || normalized.endsWith(".txt") || normalized === "_headers") {
+        files.set(normalized, readFileSync(join(outDir, file), "utf8"));
+      }
     }
 
     return {
       status: res.status,
       output: `${res.stdout}\n${res.stderr}`,
       page: (route) => pages.get(route) ?? null,
+      file: (path) => files.get(path.replace(/^\/+/, "")) ?? null,
     };
   } finally {
     rmSync(outDir, { recursive: true, force: true });
