@@ -1,21 +1,10 @@
+import { extractGraphQLContributions } from "../../src/githubStats";
 import { site } from "../../src/settings";
 
 interface Env {
   GITHUB_TOKEN?: string;
   GITHUB_API_URL?: string;
   GITHUB_TIMEOUT_MS?: string;
-}
-
-interface GraphQLResponse {
-  data?: {
-    user?: {
-      contributionsCollection?: {
-        contributionCalendar?: {
-          totalContributions?: unknown;
-        };
-      };
-    };
-  };
 }
 
 const DEFAULT_GITHUB_API_URL = "https://api.github.com/graphql";
@@ -43,10 +32,6 @@ function jsonError(status: number, error: string): Response {
       "cache-control": "no-store",
     },
   });
-}
-
-function isValidContributions(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
@@ -88,16 +73,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
     return jsonError(502, "GitHub API returned an error.");
   }
 
-  let payload: GraphQLResponse;
+  let payload: unknown;
   try {
-    payload = (await res.json()) as GraphQLResponse;
+    payload = await res.json();
   } catch {
     return jsonError(502, "Invalid response from GitHub API.");
   }
 
-  const contributions =
-    payload?.data?.user?.contributionsCollection?.contributionCalendar?.totalContributions;
-  if (!isValidContributions(contributions)) {
+  const contributions = extractGraphQLContributions(payload);
+  if (contributions === null) {
     return jsonError(502, "Missing contribution count in GitHub response.");
   }
 
