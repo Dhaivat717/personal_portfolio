@@ -110,12 +110,12 @@ describe("Home page Experience section", () => {
     const roles = [...section.matchAll(/<article[^>]*data-role[^>]*>([\s\S]*?)<\/article>/g)].map((m) => m[1]);
     expect(roles).toHaveLength(4);
 
-    // Bullet counts per role: 5, 3, 3, 2.
+    // Bullet counts per role: 6, 3, 3, 2.
     const bulletCounts = roles.map((r) => {
       const list = r.match(/<ul[^>]*data-bullets[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? "";
       return [...list.matchAll(/<li\b/g)].length;
     });
-    expect(bulletCounts).toEqual([5, 3, 3, 2]);
+    expect(bulletCounts).toEqual([6, 3, 3, 2]);
 
     // Dates in monospace left column.
     expect(text(roles[0])).toContain("2023–present");
