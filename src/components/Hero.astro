@@ -3,9 +3,8 @@
  * Home page hero (variant D): two equal-height columns.
  * - Left: ID card with rounded portrait photo (LCP), name (h1), role & employer
  *   chips from site settings, intro copy, and GitHub/LinkedIn icon links.
- * - Right: editor window (`about.md`) that types once per browser session
- *   (stored in sessionStorage), then shows in full. Under prefers-reduced-motion
- *   or without JS, it renders in full immediately.
+ * - Right: editor window (`about.md`) that types out on every load. Under
+ *   prefers-reduced-motion or without JS, it renders in full immediately.
  * - Below the editor: three stat boxes (5+ Years of experience · M.S. Computer
  *   Science, Rutgers with decorative Rutgers logo · N GitHub contributions ·
  *   last 12 months linking to GitHub profile) plus Résumé and Get in touch buttons.
@@ -142,28 +141,17 @@ const aboutTokens: Token[] = [
 </div>
 
 <script>
-  const SESSION_KEY = "about-typed";
   const editor = document.querySelector<HTMLPreElement>("[data-about-editor]");
 
   if (editor) {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let alreadyTyped = false;
-    try {
-      alreadyTyped = sessionStorage.getItem(SESSION_KEY) === "1";
-    } catch {
-      alreadyTyped = true;
-    }
 
-    if (!reducedMotion && !alreadyTyped) {
+    if (!reducedMotion) {
       const tokenEls = Array.from(editor.querySelectorAll<HTMLSpanElement>("[data-token]"));
       const fullTexts = tokenEls.map((el) => el.textContent ?? "");
       for (const el of tokenEls) {
         el.textContent = "";
       }
-
-      try {
-        sessionStorage.setItem(SESSION_KEY, "1");
-      } catch {}
 
       let tokenIndex = 0;
       let charIndex = 0;

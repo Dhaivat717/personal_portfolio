@@ -77,7 +77,7 @@ test("hero renders two equal-height columns with the ID card, stat boxes and CTA
   await expect(contactBtn).toHaveAttribute("href", "#contact");
 });
 
-test("the about.md editor types on the first visit in a session and shows full text immediately on reload", async ({
+test("the about.md editor types out its text on load and again on reload", async ({
   page,
 }) => {
   await recordInitialEditorText(page);
@@ -85,10 +85,10 @@ test("the about.md editor types on the first visit in a session and shows full t
   const editor = page.locator("[data-about-editor]");
   await expect(editor).toBeVisible();
 
-  // At DOMContentLoaded on the first visit, the editor starts empty/mid-typing (before the final paragraph).
+  // At DOMContentLoaded, the editor starts empty/mid-typing (before the final paragraph).
   expect(await readInitialEditorText(page)).not.toContain("Projects section below.");
 
-  // Wait for typing to finish on the first visit.
+  // Wait for typing to finish.
   await expect(editor).toHaveAttribute("data-typed", "done", { timeout: 10_000 });
   await expect(editor).toContainText("Hi, I’m Dhaivat.");
   await expect(editor).toContainText("1,000+ investigations");
@@ -96,13 +96,11 @@ test("the about.md editor types on the first visit in a session and shows full t
   await expect(editor).toContainText("How I work");
   await expect(editor).toContainText("Projects section below.");
 
-  const sessionFlag = await page.evaluate(() => sessionStorage.getItem("about-typed"));
-  expect(sessionFlag).toBe("1");
-
-  // Reloading in the same session renders the full text immediately at DOMContentLoaded without typing again.
+  // Reloading runs the typing animation again rather than skipping it.
   await page.reload();
-  expect(await readInitialEditorText(page)).toContain("Projects section below.");
-  await expect(editor).toHaveAttribute("data-typed", "done");
+  expect(await readInitialEditorText(page)).not.toContain("Projects section below.");
+  await expect(editor).toHaveAttribute("data-typed", "done", { timeout: 10_000 });
+  await expect(editor).toContainText("Projects section below.");
 });
 
 test.describe("with prefers-reduced-motion: reduce", () => {
