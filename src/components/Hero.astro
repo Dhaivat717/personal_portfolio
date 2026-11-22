@@ -197,6 +197,25 @@ const aboutTokens: Token[] = [
       editor.dataset.typed = "done";
     }
   }
+
+  const contributionsEl = document.querySelector<HTMLElement>("[data-github-contributions]");
+  if (contributionsEl) {
+    fetch("/api/github-stats")
+      .then((res) => (res.ok ? (res.json() as Promise<{ contributions?: unknown }>) : null))
+      .then((data) => {
+        if (
+          data &&
+          typeof data.contributions === "number" &&
+          Number.isFinite(data.contributions) &&
+          data.contributions >= 0
+        ) {
+          contributionsEl.textContent = String(data.contributions);
+        }
+      })
+      .catch(() => {
+        // Keep the baked number in place on any failure.
+      });
+  }
 </script>
 
 <style>

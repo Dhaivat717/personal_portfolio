@@ -80,6 +80,7 @@ async function serveBuiltSite(siteEnv: string | undefined): Promise<{
 
   const port = await freePort();
   const inspectorPort = await freePort();
+  const emailPort = Number(process.env.PLAYWRIGHT_EMAIL_PORT ?? Number(process.env.PLAYWRIGHT_PORT ?? 8788) + 1);
   let output = "";
   const child: ChildProcess = spawn(
     "npx",
@@ -94,6 +95,10 @@ async function serveBuiltSite(siteEnv: string | undefined): Promise<{
       String(inspectorPort),
       "--persist-to",
       stateDir,
+      "--binding",
+      "GITHUB_TOKEN=ghp_test_token",
+      "--binding",
+      `GITHUB_API_URL=http://127.0.0.1:${emailPort}/graphql`,
     ],
     { stdio: ["ignore", "pipe", "pipe"] },
   );
