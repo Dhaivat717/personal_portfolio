@@ -26,7 +26,12 @@ const personJsonLd = {
 };
 ---
 
-<Base title={`${site.name} · ${site.role} @ ${site.employer}`} description={description} jsonLd={personJsonLd}>
+<Base
+  title={`${site.name} · ${site.role} @ ${site.employer}`}
+  description={description}
+  ogImage={site.image}
+  jsonLd={personJsonLd}
+>
   <Hero />
 
   <Experience />

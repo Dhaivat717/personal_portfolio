@@ -13,6 +13,8 @@ export interface BuildResult {
   page(route: string): string | null;
   /** A built text file by relative path (e.g. `sitemap-0.xml`, `robots.txt`, `_headers`), or null if absent. */
   file(path: string): string | null;
+  /** A built binary file by relative path (e.g. `og/home.png`), or null if absent. */
+  binary(path: string): Buffer | null;
 }
 
 export interface BuildOptions {
@@ -52,9 +54,10 @@ export function buildWithFixture(fixture: string, { env = {} }: BuildOptions = {
       env: childEnv,
     });
 
-    // Read the built pages and text metadata files now; the temp folder is deleted on return.
+    // Read the built pages, text metadata files and social card PNGs now; the temp folder is deleted on return.
     const pages = new Map<string, string>();
     const files = new Map<string, string>();
+    const binaries = new Map<string, Buffer>();
     for (const file of readdirSync(outDir, { recursive: true, encoding: "utf8" })) {
       const normalized = file.replace(/\\/g, "/");
       if (normalized.endsWith(".html")) {
@@ -62,6 +65,8 @@ export function buildWithFixture(fixture: string, { env = {} }: BuildOptions = {
         pages.set(route, readFileSync(join(outDir, file), "utf8"));
       } else if (normalized.endsWith(".xml") || normalized.endsWith(".txt") || normalized === "_headers") {
         files.set(normalized, readFileSync(join(outDir, file), "utf8"));
+      } else if (normalized.startsWith("og/") && normalized.endsWith(".png")) {
+        binaries.set(normalized, readFileSync(join(outDir, file)));
       }
     }
 
@@ -70,6 +75,7 @@ export function buildWithFixture(fixture: string, { env = {} }: BuildOptions = {
       output: `${res.stdout}\n${res.stderr}`,
       page: (route) => pages.get(route) ?? null,
       file: (path) => files.get(path.replace(/^\/+/, "")) ?? null,
+      binary: (path) => binaries.get(path.replace(/^\/+/, "")) ?? null,
     };
   } finally {
     rmSync(outDir, { recursive: true, force: true });

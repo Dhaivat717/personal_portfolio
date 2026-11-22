@@ -1,4 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { discoverRoutes } from "../../scripts/routes.ts";
+
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+function pngDimensions(buf: Buffer): { width: number; height: number } | null {
+  if (buf.length < 24 || !buf.subarray(0, 8).equals(PNG_SIGNATURE)) return null;
+  return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+}
 
 test.describe("SEO metadata", () => {
   test("Home page has title, description and canonical URL", async ({ page }) => {
@@ -106,6 +114,26 @@ test.describe("SEO metadata", () => {
     for (const url of locs) {
       expect(url).not.toMatch(/\.html$/);
       if (url !== "https://dhaivat.dev/") expect(url).not.toMatch(/\/$/);
+    }
+  });
+
+  test("every indexable page's og:image and Twitter card resolve to a 1200×630 PNG", async ({ page, request }) => {
+    const routes = discoverRoutes().filter((route) => route !== "/404" && !route.startsWith("/contact/"));
+    expect(routes).toEqual(expect.arrayContaining(["/", "/projects"]));
+
+    for (const route of routes) {
+      await page.goto(route);
+      const ogImage = await page.locator('meta[property="og:image"]').getAttribute("content");
+      expect(ogImage, `${route} should set og:image`).toMatch(/^https:\/\/dhaivat\.dev\/og\/.+\.png$/);
+      await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
+      await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute("content", ogImage!);
+
+      const cardPath = new URL(ogImage!).pathname;
+      const res = await request.get(cardPath);
+      expect(res.status(), `${cardPath} for ${route} should return 200`).toBe(200);
+      expect(res.headers()["content-type"]).toContain("image/png");
+      const body = await res.body();
+      expect(pngDimensions(body), `${cardPath} should be a 1200×630 PNG`).toEqual({ width: 1200, height: 630 });
     }
   });
 });
