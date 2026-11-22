@@ -10,7 +10,7 @@
  *   last 12 months linking to GitHub profile) plus Résumé and Get in touch buttons.
  */
 import { Image } from "astro:assets";
-import rutgersLogo from "../assets/logos/rutgers.webp";
+import rutgersLogo from "../assets/logos/rutgers.png";
 import portrait from "../assets/portrait.jpeg";
 import { site } from "../settings";
 
@@ -110,7 +110,7 @@ const aboutTokens: Token[] = [
         <span>Years of experience</span>
       </div>
       <div class="stat">
-        <Image class="logo" src={rutgersLogo} alt="" width={40} height={30} loading="eager" />
+        <Image class="logo" src={rutgersLogo} alt="" width={36} height={36} loading="eager" />
         <b>Masters</b>
         <span>Computer Science, {schoolShort}</span>
       </div>
@@ -421,8 +421,8 @@ const aboutTokens: Token[] = [
     position: absolute;
     top: 14px;
     right: 14px;
-    width: 40px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
     object-fit: contain;
     border-radius: 5px;
   }

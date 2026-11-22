@@ -1,9 +1,9 @@
 import type { ImageMetadata } from "astro";
 import { getCollection, type CollectionEntry } from "astro:content";
-import amazonLogo from "./assets/logos/amazon.webp";
+import amazonLogo from "./assets/logos/amazon.png";
 import botreeLogo from "./assets/logos/botree.png";
 import invidiLogo from "./assets/logos/invidi.webp";
-import rutgersLogo from "./assets/logos/rutgers.webp";
+import rutgersLogo from "./assets/logos/rutgers.png";
 
 export type ExperienceEntry = CollectionEntry<"experience">;
 export type CompanyLogoKey = ExperienceEntry["data"]["logo"];
