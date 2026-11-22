@@ -1,5 +1,5 @@
 import { defineCollection } from "astro:content";
-import { glob, type Loader } from "astro/loaders";
+import { file, glob, type Loader } from "astro/loaders";
 import { z } from "astro/zod";
 import { isIconName, notAnIconMessage } from "./icons";
 import { checkProjectMedia, isClipName, type StoredMedia } from "./media";
@@ -60,4 +60,23 @@ const projects = defineCollection({
   }),
 });
 
-export const collections = { projects };
+/**
+ * Work highlights grouped by role, newest first.
+ * EXPERIENCE_FILE lets the build tests point the build at fixture data.
+ */
+const experience = defineCollection({
+  loader: file(process.env.EXPERIENCE_FILE ?? "./src/content/experience.json"),
+  schema: z.strictObject({
+    id: z.string().min(1),
+    order: z.number(),
+    company: z.string().min(1),
+    title: z.string().min(1),
+    when: z.string().min(1),
+    logo: z.enum(["amazon", "invidi", "rutgers", "botree"]),
+    logoAlt: z.string().trim().min(1),
+    bullets: z.array(z.string().trim().min(1)).min(1),
+    tags: z.array(z.string().trim().min(1)).min(1),
+  }),
+});
+
+export const collections = { experience, projects };

@@ -43,6 +43,8 @@
   /* An opaque accent tint that keeps --fg, --muted and --accent text readable on it. */
   --accent-fill: light-dark(#fcf4f0, #24160d);
   --on-accent: light-dark(#fff, #1a0c02);
+  /* Uniform white tile behind company logos so dark marks stay legible in both themes. */
+  --logo-bg: #fff;
 
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -137,4 +139,16 @@ main:focus {
 /* Section jumps land below the sticky nav, not under it. */
 section[id] {
   scroll-margin-top: calc(var(--nav-h) + 12px);
+}
+
+.band {
+  padding: 88px 0;
+}
+.band > .wrap > h2 {
+  font-size: clamp(32px, 4.5vw, 48px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0 0 24px;
+  color: var(--fg-strong);
 }

@@ -5,13 +5,14 @@
  */
 interface Props {
   stack: string[];
+  label?: string;
   class?: string;
 }
 
-const { stack, class: className } = Astro.props;
+const { stack, label = "Stack", class: className } = Astro.props;
 ---
 
-<ul class:list={["chips", className]} aria-label="Stack">
+<ul class:list={["chips", className]} aria-label={label}>
   {stack.map((item) => <li>{item}</li>)}
 </ul>
 
