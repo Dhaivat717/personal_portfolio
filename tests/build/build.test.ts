@@ -640,3 +640,71 @@ describe("Personal project media alt and caption", () => {
     expect(text(html)).toContain("The image in the body, caption.");
   });
 });
+
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+/** Read PNG width and height from the IHDR chunk, verifying the PNG signature. */
+function pngDimensions(buf: Buffer | null): { width: number; height: number } | null {
+  if (!buf || buf.length < 24 || !buf.subarray(0, 8).equals(PNG_SIGNATURE)) return null;
+  return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+}
+
+describe("social preview cards", () => {
+  test("renders a 1200×630 PNG for Home, /projects and every Personal project and wires og:image and Twitter card tags", () => {
+    const build = buildWithFixture("valid");
+    expect(build.status).toBe(0);
+
+    const expected: Array<[route: string, cardPath: string]> = [
+      ["/", "/og/home.png"],
+      ["/projects", "/og/projects.png"],
+      ["/projects/minimal", "/og/projects/minimal.png"],
+      ["/projects/full", "/og/projects/full.png"],
+    ];
+
+    for (const [route, cardPath] of expected) {
+      const html = build.page(route);
+      expect(html, `${route} should be built`).not.toBeNull();
+      const cardUrl = `https://dhaivat.dev${cardPath}`;
+      expect(html).toContain(`<meta property="og:image" content="${cardUrl}">`);
+      expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
+      expect(html).toContain(`<meta name="twitter:image" content="${cardUrl}">`);
+      expect(pngDimensions(build.binary(cardPath)), `${cardPath} should be a 1200×630 PNG`).toEqual({
+        width: 1200,
+        height: 630,
+      });
+    }
+  });
+
+  test("draft Personal projects get a card on previews and no card in production", () => {
+    const shown = buildWithFixture("drafts", { env: { SITE_ENV: undefined, SHOW_DRAFTS: undefined } });
+    expect(shown.status).toBe(0);
+    expect(pngDimensions(shown.binary("/og/projects/wip.png"))).toEqual({ width: 1200, height: 630 });
+    expect(pngDimensions(shown.binary("/og/projects/published.png"))).toEqual({ width: 1200, height: 630 });
+
+    for (const env of [
+      { SITE_ENV: "production", SHOW_DRAFTS: undefined },
+      { SITE_ENV: undefined, SHOW_DRAFTS: "false" },
+    ]) {
+      const hidden = buildWithFixture("drafts", { env });
+      expect(hidden.status).toBe(0);
+      expect(hidden.binary("/og/projects/wip.png")).toBeNull();
+      expect(pngDimensions(hidden.binary("/og/projects/published.png"))).toEqual({ width: 1200, height: 630 });
+    }
+  });
+
+  test("a page with no social card fails the build with a clear message", () => {
+    const fixturePage = resolve(import.meta.dirname, "fixtures/no-social-card/page.astro");
+    const { status, output } = buildWithFixture("valid", { env: { FIXTURE_PAGE: fixturePage } });
+    expect(status).not.toBe(0);
+    expect(output).toContain('"/fixture-page"');
+    expect(output).toMatch(/social card|og:image/i);
+  });
+
+  test("a page whose og:image points to a missing PNG fails the build with a clear message", () => {
+    const fixturePage = resolve(import.meta.dirname, "fixtures/missing-social-card/page.astro");
+    const { status, output } = buildWithFixture("valid", { env: { FIXTURE_PAGE: fixturePage } });
+    expect(status).not.toBe(0);
+    expect(output).toContain('"/fixture-page"');
+    expect(output).toContain("/og/does-not-exist.png");
+  });
+});

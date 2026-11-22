@@ -56,7 +56,13 @@ const pager = [
 ].filter((card) => !!card);
 ---
 
-<Base title={`${title} · ${site.name}`} description={pitch} jsonLd={softwareJsonLd}>
+<Base
+  title={`${title} · ${site.name}`}
+  description={pitch}
+  ogImage={`/og/projects/${project.id}.png`}
+  ogType="article"
+  jsonLd={softwareJsonLd}
+>
   <div class="wrap deep-dive">
     <header class="summary">
       <a class="back" href="/projects">← Projects</a>

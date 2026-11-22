@@ -5,6 +5,7 @@ import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import { architectureDiagramCheck } from "./src/architectureCheck.ts";
 import { site } from "./src/settings.ts";
+import { socialCardCheck } from "./src/socialCardCheck.ts";
 
 export default defineConfig({
   site: site.origin,
@@ -20,5 +21,6 @@ export default defineConfig({
       filter: (page) => !new URL(page).pathname.startsWith("/contact/"),
     }),
     architectureDiagramCheck(),
+    socialCardCheck(),
   ],
 });
