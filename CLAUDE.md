@@ -15,3 +15,7 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 ### Social preview cards
 
 Every new indexable page in `src/pages/` (anything without `noindex` on `<Base>`) must have a 1200×630 PNG social preview card: pass `ogImage="/og/<page>.png"` to `src/layouts/Base.astro` and add its template/route in `src/og.ts` and `src/pages/og/[...page].png.ts`. New Personal projects in `src/content/projects/` get `/og/projects/<slug>.png` automatically. `src/socialCardCheck.ts` fails the build if any indexable page is missing its card.
+
+### Adding a Personal project
+
+Follow `docs/adding-a-personal-project.md` when adding or updating a Personal project and its Deep dive.
