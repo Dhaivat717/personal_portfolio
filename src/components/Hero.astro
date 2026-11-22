@@ -147,6 +147,12 @@ const aboutTokens: Token[] = [
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (!reducedMotion) {
+      // Lock the editor's full-text height before clearing so the terminal and ID card never resize while typing.
+      const fullHeight = editor.getBoundingClientRect().height;
+      if (fullHeight > 0) {
+        editor.style.minHeight = `${fullHeight}px`;
+      }
+
       const tokenEls = Array.from(editor.querySelectorAll<HTMLSpanElement>("[data-token]"));
       const fullTexts = tokenEls.map((el) => el.textContent ?? "");
       for (const el of tokenEls) {
@@ -162,6 +168,7 @@ const aboutTokens: Token[] = [
         for (let i = 0; i < tokenEls.length; i++) {
           tokenEls[i].textContent = fullTexts[i];
         }
+        editor.style.removeProperty("min-height");
         editor.dataset.typed = "done";
       };
 

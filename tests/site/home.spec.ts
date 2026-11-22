@@ -77,19 +77,27 @@ test("hero renders two equal-height columns with the ID card, stat boxes and CTA
   await expect(contactBtn).toHaveAttribute("href", "#contact");
 });
 
-test("the about.md editor types out its text on load and again on reload", async ({
+test("the about.md editor types out its text on load and again on reload without resizing the hero columns", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await recordInitialEditorText(page);
   await page.goto("/");
   const editor = page.locator("[data-about-editor]");
+  const idCard = page.locator("[data-hero] .idcard");
   await expect(editor).toBeVisible();
 
   // At DOMContentLoaded, the editor starts empty/mid-typing (before the final paragraph).
   expect(await readInitialEditorText(page)).not.toContain("Projects section below.");
+  const typingEditorHeight = (await editor.boundingBox())!.height;
+  const typingCardHeight = (await idCard.boundingBox())!.height;
 
   // Wait for typing to finish.
   await expect(editor).toHaveAttribute("data-typed", "done", { timeout: 25_000 });
+  const doneEditorHeight = (await editor.boundingBox())!.height;
+  const doneCardHeight = (await idCard.boundingBox())!.height;
+  expect(Math.abs(typingEditorHeight - doneEditorHeight)).toBeLessThanOrEqual(2);
+  expect(Math.abs(typingCardHeight - doneCardHeight)).toBeLessThanOrEqual(2);
   await expect(editor).toContainText("Hi, I’m Dhaivat.");
   await expect(editor).toContainText("1,000+ investigations");
   await expect(editor).toContainText("Off the clock");
