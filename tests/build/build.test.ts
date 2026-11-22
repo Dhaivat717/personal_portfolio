@@ -75,10 +75,10 @@ describe("Home page hero", () => {
     expect(homeText).toContain("How I work");
     expect(homeText).toContain("problem solver who learns best by building");
 
-    // Three stat boxes: 5+ years, M.S. Rutgers with decorative logo (alt=""), baked contributions linking to GitHub.
+    // Three stat boxes: 5+ years, Masters Rutgers with decorative logo (alt=""), baked contributions linking to GitHub.
     expect(homeText).toContain("5+");
     expect(homeText).toContain("Years of experience");
-    expect(homeText).toContain("M.S.");
+    expect(homeText).toContain("Masters");
     expect(homeText).toContain("Computer Science, Rutgers");
     expect(home).toMatch(/<img[^>]*\balt(?:="")?(?:\s|>)/);
     expect(homeText).toContain("30");

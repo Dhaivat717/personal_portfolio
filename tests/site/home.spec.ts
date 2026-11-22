@@ -57,11 +57,11 @@ test("hero renders two equal-height columns with the ID card, stat boxes and CTA
     "https://www.linkedin.com/in/dhaivat-h-patel/",
   );
 
-  // Three stat boxes: 5+ years · M.S. Computer Science, Rutgers (decorative logo alt="") · N GitHub contributions linking to GitHub.
+  // Three stat boxes: 5+ years · Masters Computer Science, Rutgers (decorative logo alt="") · N GitHub contributions linking to GitHub.
   const stats = rightCol.locator(".stats");
   await expect(stats).toContainText("5+");
   await expect(stats).toContainText("Years of experience");
-  await expect(stats).toContainText("M.S.");
+  await expect(stats).toContainText("Masters");
   await expect(stats).toContainText("Computer Science, Rutgers");
   await expect(stats.locator("img")).toHaveAttribute("alt", "");
 
