@@ -41,9 +41,9 @@ describe("Personal projects", () => {
   });
 });
 
-/** The Home page's `#projects` section markup. */
-function homeProjectsSection(html: string | null): string {
-  return html?.match(/<section[^>]*id="projects"[^>]*>([\s\S]*?)<\/section>/)?.[1] ?? "";
+/** Markup inside a Home page `<section id="...">`. */
+function homeSection(html: string | null, id: string): string {
+  return html?.match(new RegExp(`<section[^>]*id="${id}"[^>]*>([\\s\\S]*?)<\\/section>`))?.[1] ?? "";
 }
 
 describe("Home page hero", () => {
@@ -91,12 +91,94 @@ describe("Home page hero", () => {
   });
 });
 
+describe("Home page Experience section", () => {
+  test("renders all four roles newest first with Work highlights, bolded figures, logos and tags", () => {
+    const build = buildWithFixture("valid");
+    expect(build.status).toBe(0);
+
+    const section = homeSection(build.page("/"), "experience");
+    expect(section).toMatch(/<h2[^>]*>Experience\.<\/h2>/);
+
+    const roleHeadings = [...section.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/g)].map((m) => text(m[1]).trim());
+    expect(roleHeadings).toEqual([
+      "Software Development Engineer @ Amazon Ads",
+      "Software Engineer @ Invidi Technologies",
+      "SDE Intern @ Amazon",
+      "Accessibility Developer @ Rutgers University",
+    ]);
+
+    const roles = [...section.matchAll(/<article[^>]*data-role[^>]*>([\s\S]*?)<\/article>/g)].map((m) => m[1]);
+    expect(roles).toHaveLength(4);
+
+    // Bullet counts per role: 5, 3, 3, 2.
+    const bulletCounts = roles.map((r) => {
+      const list = r.match(/<ul[^>]*data-bullets[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? "";
+      return [...list.matchAll(/<li\b/g)].length;
+    });
+    expect(bulletCounts).toEqual([5, 3, 3, 2]);
+
+    // Dates in monospace left column.
+    expect(text(roles[0])).toContain("2023–present");
+    expect(text(roles[1])).toContain("Mar–Jul 2023");
+    expect(text(roles[2])).toContain("May–Aug 2022");
+    expect(text(roles[3])).toContain("Feb 2021–Dec 2022");
+
+    // Key figures bolded in bullets; Rutgers bullets have no bolded figure.
+    const bulletStrong = (roleHtml: string) => {
+      const list = roleHtml.match(/<ul[^>]*data-bullets[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? "";
+      return [...list.matchAll(/<strong[^>]*>([\s\S]*?)<\/strong>/g)].map((m) => text(m[1]));
+    };
+    expect(bulletStrong(roles[0])).toEqual([
+      "1,000+ investigations in two weeks",
+      "300+ inconsistent fields and 63 bugs before GA",
+      "19 new marketplaces",
+      "from 1,000 calls to 4 (−99.6%)",
+      "from 16K req/s to 0",
+    ]);
+    expect(bulletStrong(roles[1])).toEqual(["−10% service load"]);
+    expect(bulletStrong(roles[2])).toEqual(["−80% downstream cache calls"]);
+    expect(bulletStrong(roles[3])).toEqual([]);
+
+    // Every role has a logo image with meaningful non-empty alt text and tag chips.
+    for (const roleHtml of roles) {
+      const alt = roleHtml.match(/<img[^>]*\balt="([^"]+)"/)?.[1] ?? "";
+      expect(alt.trim().length).toBeGreaterThan(0);
+      expect(roleHtml).toMatch(/aria-label="Technologies"/);
+    }
+  });
+
+  test("changing a bullet in the data changes the built page with no markup edits", () => {
+    const sourcePath = resolve(import.meta.dirname, "../../src/content/experience.json");
+    const data = JSON.parse(readFileSync(sourcePath, "utf8")) as Array<{
+      id: string;
+      bullets: string[];
+    }>;
+    const originalBullet = data[0].bullets[0];
+    data[0].bullets[0] = "Updated bullet from data with **42x faster** throughput.";
+
+    const tmpFile = join(resolve(import.meta.dirname, "../../.astro"), "test-experience-override.json");
+    mkdirSync(dirname(tmpFile), { recursive: true });
+    writeFileSync(tmpFile, JSON.stringify(data, null, 2));
+    try {
+      const build = buildWithFixture("valid", { env: { EXPERIENCE_FILE: tmpFile } });
+      expect(build.status).toBe(0);
+
+      const section = homeSection(build.page("/"), "experience");
+      expect(text(section)).toContain("Updated bullet from data with 42x faster throughput.");
+      expect(section).toMatch(/<strong[^>]*>42x faster<\/strong>/);
+      expect(text(section)).not.toContain(originalBullet.replace(/\*\*/g, ""));
+    } finally {
+      rmSync(tmpFile, { force: true });
+    }
+  });
+});
+
 describe("Home page Projects band", () => {
   test("shows up to 3 featured projects lowest order first, excludes non-featured, and links to /projects", () => {
     const build = buildWithFixture("featured");
     expect(build.status).toBe(0);
 
-    const band = homeProjectsSection(build.page("/"));
+    const band = homeSection(build.page("/"), "projects");
     expect(band).toMatch(/<h2[^>]*>Projects\.<\/h2>/);
 
     const rowHrefs = [...band.matchAll(/<a[^>]*href="(\/projects\/[^"]+)"/g)].map((m) => m[1]);
@@ -118,7 +200,7 @@ describe("Home page Projects band", () => {
   test("follows the draft production/preview rule", () => {
     const shown = buildWithFixture("drafts", { env: { SITE_ENV: undefined, SHOW_DRAFTS: undefined } });
     expect(shown.status).toBe(0);
-    const shownBand = homeProjectsSection(shown.page("/"));
+    const shownBand = homeSection(shown.page("/"), "projects");
     expect(shownBand).toContain('href="/projects/published"');
     expect(shownBand).toContain('href="/projects/wip"');
 
@@ -128,7 +210,7 @@ describe("Home page Projects band", () => {
     ]) {
       const hidden = buildWithFixture("drafts", { env });
       expect(hidden.status).toBe(0);
-      const hiddenBand = homeProjectsSection(hidden.page("/"));
+      const hiddenBand = homeSection(hidden.page("/"), "projects");
       expect(hiddenBand).toContain('href="/projects/published"');
       expect(hiddenBand).not.toContain("/projects/wip");
       expect(hiddenBand).not.toContain("Work In Progress");

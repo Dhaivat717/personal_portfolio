@@ -1,0 +1,63 @@
+[
+  {
+    "id": "amazon-ads",
+    "order": 1,
+    "company": "Amazon Ads",
+    "title": "Software Development Engineer",
+    "when": "2023–present",
+    "logo": "amazon",
+    "logoAlt": "Amazon Ads logo",
+    "bullets": [
+      "Built an autonomous LLM on-call triage agent with audit gates and hard safety rules. It ran **1,000+ investigations in two weeks** and removed 3–6 hours a day of team toil.",
+      "Co-designed and led a shadow-traffic parity-verification system for a two-year platform migration. It became the GA gate and surfaced **300+ inconsistent fields and 63 bugs before GA**. The migration then reached 100% in 3 regions with zero fallbacks.",
+      "Shipped the Amazon DSP campaign-management and discovery APIs worldwide in the fifth month: **19 new marketplaces**, with integrator adoption up 58% in three months.",
+      "Scaled the APIs for GA by removing work instead of adding capacity. Audience fan-out went **from 1,000 calls to 4 (−99.6%)** and latency from 30 s to 3 s.",
+      "Led advertiser-level permissions across 13 APIs and designed build-time-enforced internal-field authorization. Auth-service traffic went **from 16K req/s to 0** and write latency fell 41%."
+    ],
+    "tags": ["Java", "AWS ECS", "Lambda", "DynamoDB", "S3", "SQS", "LLM agents"]
+  },
+  {
+    "id": "invidi-technologies",
+    "order": 2,
+    "company": "Invidi Technologies",
+    "title": "Software Engineer",
+    "when": "Mar–Jul 2023",
+    "logo": "invidi",
+    "logoAlt": "Invidi Technologies logo",
+    "bullets": [
+      "Containerized a Dropwizard service onto Kubernetes with CI/CD, behind an internal-only endpoint.",
+      "Added an NGINX cache for external requests: **−10% service load**.",
+      "Onboarded services to Datadog for health, traffic and memory monitoring."
+    ],
+    "tags": ["Java", "Dropwizard", "Kubernetes", "NGINX", "Datadog"]
+  },
+  {
+    "id": "amazon-intern",
+    "order": 3,
+    "company": "Amazon",
+    "title": "SDE Intern",
+    "when": "May–Aug 2022",
+    "logo": "amazon",
+    "logoAlt": "Amazon logo",
+    "bullets": [
+      "Built thread-safe Bloom filters for high-concurrency targeting IDs, removing a concurrency bottleneck.",
+      "Reworked the cache query path: **−80% downstream cache calls** and lower P90 latency.",
+      "Added latency metrics and failure alarms."
+    ],
+    "tags": ["Java", "Concurrency", "Caching"]
+  },
+  {
+    "id": "rutgers-accessibility",
+    "order": 4,
+    "company": "Rutgers University",
+    "title": "Accessibility Developer",
+    "when": "Feb 2021–Dec 2022",
+    "logo": "rutgers",
+    "logoAlt": "Rutgers University logo",
+    "bullets": [
+      "Built accessible web pages and remediated course materials (Word, PDF, PowerPoint) for students with low vision or blindness.",
+      "Formalized the math in the Intro to Artificial Intelligence course as accessible MathML with Equatio, so screen readers could read every equation."
+    ],
+    "tags": ["HTML", "MathML", "Equatio", "Microsoft Office"]
+  }
+]

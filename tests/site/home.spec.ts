@@ -196,3 +196,113 @@ test("Home Projects band shows Featured projects as rows and links to /projects"
   await allProjects.click();
   await expect(page).toHaveURL(/\/projects$/);
 });
+
+test("Experience section shows all four roles newest first without tabs, with loaded logos in white rounded squares", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+
+  const section = page.locator("#experience");
+  await expect(section.getByRole("heading", { level: 2 })).toHaveText("Experience.");
+  await expect(section.getByRole("tab")).toHaveCount(0);
+
+  const roles = section.locator("[data-role]");
+  await expect(roles).toHaveCount(4);
+
+  const headings = await roles.locator("h3").allInnerTexts();
+  expect(headings).toEqual([
+    "Software Development Engineer @ Amazon Ads",
+    "Software Engineer @ Invidi Technologies",
+    "SDE Intern @ Amazon",
+    "Accessibility Developer @ Rutgers University",
+  ]);
+
+  for (let i = 0; i < 4; i++) {
+    const role = roles.nth(i);
+    await expect(role).toBeVisible();
+    const logoBox = role.locator(".logo-box");
+    const img = logoBox.locator("img");
+    await img.scrollIntoViewIfNeeded();
+    await expect(img).toBeVisible();
+    const alt = await img.getAttribute("alt");
+    expect(alt?.trim().length).toBeGreaterThan(0);
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+
+    const boxStyle = await logoBox.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        bg: s.backgroundColor,
+        radius: parseFloat(s.borderTopLeftRadius),
+        width: el.getBoundingClientRect().width,
+        height: el.getBoundingClientRect().height,
+      };
+    });
+    expect(boxStyle.bg).toBe("rgb(255, 255, 255)");
+    expect(boxStyle.radius).toBeGreaterThan(0);
+    expect(Math.abs(boxStyle.width - boxStyle.height)).toBeLessThanOrEqual(1);
+    await expect(role.getByRole("list", { name: "Technologies" })).toHaveCSS("margin-top", "22px");
+  }
+
+  // Rutgers role has 2 bullets and no bolded figures.
+  const rutgers = section.locator('[data-role="rutgers-accessibility"]');
+  await expect(rutgers.locator("[data-bullets] li")).toHaveCount(2);
+  await expect(rutgers.locator("[data-bullets] strong")).toHaveCount(0);
+});
+
+test("Experience left column stays sticky while reading a role on desktop and stacks on phones", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await page.goto("/");
+
+  const firstRole = page.locator('#experience [data-role="amazon-ads"]');
+  const side = firstRole.locator(".side");
+  const details = firstRole.locator(".details");
+
+  expect(await side.evaluate((el) => getComputedStyle(el).position)).toBe("sticky");
+
+  // Scroll down into the middle of the first role's bullets so sticky kicks in.
+  await firstRole.evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    window.scrollTo({ top: window.scrollY + rect.top + 140, behavior: "instant" });
+  });
+
+  const sideBox = (await side.boundingBox())!;
+  const detailsBox = (await details.boundingBox())!;
+  // Left column stays pinned below the nav while details have scrolled above it.
+  expect(sideBox.y).toBeGreaterThanOrEqual(52);
+  expect(sideBox.y).toBeLessThanOrEqual(100);
+  expect(detailsBox.y).toBeLessThan(sideBox.y);
+
+  // On phones, the left column is static and stacks above the bullets.
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await side.evaluate((el) => getComputedStyle(el).position)).toBe("static");
+  const mobileSide = (await side.boundingBox())!;
+  const mobileDetails = (await details.boundingBox())!;
+  expect(mobileSide.y + mobileSide.height).toBeLessThanOrEqual(mobileDetails.y + 1);
+});
+
+test("Experience section works at 320 px width and 200% zoom without horizontal overflow", async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 640, height: 400 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    const section = page.locator("#experience");
+    await section.scrollIntoViewIfNeeded();
+    await expect(section.locator("h3")).toHaveCount(4);
+    for (let i = 0; i < 4; i++) {
+      await expect(section.locator("h3").nth(i)).toBeVisible();
+    }
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow, `horizontal overflow at ${viewport.width}x${viewport.height}`).toBeLessThanOrEqual(0);
+  }
+});

@@ -11,7 +11,7 @@ for (const { scheme, background, accent } of themes) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.goto("/");
     await expect(page.locator("body")).toHaveCSS("background-color", background);
-    await expect(page.getByText("Amazon Ads", { exact: true })).toHaveCSS("color", accent);
+    await expect(page.locator("[data-hero]").getByText("Amazon Ads", { exact: true })).toHaveCSS("color", accent);
   });
 }
 
