@@ -1,5 +1,6 @@
 ---
 import ContactForm from "../components/ContactForm.astro";
+import Hero from "../components/Hero.astro";
 import ProjectRow from "../components/ProjectRow.astro";
 import Base from "../layouts/Base.astro";
 import { getFeaturedProjects } from "../projects";
@@ -25,13 +26,7 @@ const personJsonLd = {
 ---
 
 <Base title={`${site.name} · ${site.role} @ ${site.employer}`} description={description} jsonLd={personJsonLd}>
-  <div class="wrap hero">
-    <h1>{site.name}</h1>
-    <div class="chips">
-      <span class="chip">{site.role}</span>
-      <span class="chip">{site.employer}</span>
-    </div>
-  </div>
+  <Hero />
 
   <!-- Placeholders: later tickets fill these Sections. -->
   <section id="experience"></section>
@@ -56,34 +51,6 @@ const personJsonLd = {
 </Base>
 
 <style>
-  .hero {
-    padding: 72px 22px 56px;
-    text-align: center;
-  }
-  h1 {
-    font-size: clamp(34px, 5vw, 56px);
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    margin: 0;
-    color: var(--fg-strong);
-  }
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 14px;
-  }
-  .chip {
-    display: inline-block;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent);
-    background: var(--accent-fill);
-    border-radius: 980px;
-    padding: 4px 12px;
-  }
   .band {
     padding: 88px 0;
   }

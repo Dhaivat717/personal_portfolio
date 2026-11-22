@@ -1,0 +1,495 @@
+---
+/**
+ * Home page hero (variant D): two equal-height columns.
+ * - Left: ID card with rounded portrait photo (LCP), name (h1), role & employer
+ *   chips from site settings, intro copy, and GitHub/LinkedIn icon links.
+ * - Right: editor window (`about.md`) that types once per browser session
+ *   (stored in sessionStorage), then shows in full. Under prefers-reduced-motion
+ *   or without JS, it renders in full immediately.
+ * - Below the editor: three stat boxes (5+ Years of experience · M.S. Computer
+ *   Science, Rutgers with decorative Rutgers logo · N GitHub contributions ·
+ *   last 12 months linking to GitHub profile) plus Résumé and Get in touch buttons.
+ */
+import { Image } from "astro:assets";
+import rutgersLogo from "../assets/logos/rutgers.webp";
+import portrait from "../assets/portrait.jpeg";
+import { site } from "../settings";
+
+const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
+const firstName = site.name.split(" ")[0];
+const schoolShort = site.alumniOf.split(" ")[0];
+
+type TokenClass = "heading-mark" | "heading-text" | "prose" | "strong" | "bullet";
+
+interface Token {
+  cls: TokenClass;
+  text: string;
+}
+
+const aboutTokens: Token[] = [
+  { cls: "heading-mark", text: "## " },
+  { cls: "heading-text", text: `Hi, I’m ${firstName}.\n` },
+  { cls: "prose", text: "I’m a software engineer on " },
+  { cls: "strong", text: `${site.employer},` },
+  { cls: "prose", text: " where I build the\nAPIs and platforms advertisers use in " },
+  { cls: "strong", text: "19+ new marketplaces." },
+  { cls: "prose", text: "\n\n" },
+  { cls: "heading-mark", text: "## " },
+  { cls: "heading-text", text: "Lately\n" },
+  { cls: "bullet", text: "- " },
+  { cls: "prose", text: "an LLM on-call agent that ran " },
+  { cls: "strong", text: "1,000+ investigations" },
+  { cls: "prose", text: " in two weeks\n" },
+  { cls: "bullet", text: "- " },
+  { cls: "prose", text: "a parity gate that caught " },
+  { cls: "strong", text: "63 bugs before GA" },
+  { cls: "prose", text: "\n" },
+  { cls: "bullet", text: "- " },
+  { cls: "prose", text: "API fan-out cut from " },
+  { cls: "strong", text: "1,000 calls to 4" },
+  { cls: "prose", text: "\n\n" },
+  { cls: "heading-mark", text: "## " },
+  { cls: "heading-text", text: "Off the clock\n" },
+  {
+    cls: "prose",
+    text: "When I’m not in front of a screen, you’ll usually find me on a tennis court. I love getting friends together for board game nights, murder mystery parties, and the occasional homemade dessert. Outside of that, I’m always up for a weekend road trip, a good comedy show, or hunting down the best pizza and ramen around Jersey City and NYC.\n\n",
+  },
+  { cls: "heading-mark", text: "## " },
+  { cls: "heading-text", text: "How I work\n" },
+  {
+    cls: "prose",
+    text: "At my core, I’m a problem solver who learns best by building. I’m endlessly curious about how things work under the hood—especially right now, experimenting with AI tools and seeing how they can turn tedious workflows into something genuinely useful. I’m always tinkering with a new idea, picking up a new skill, or trying to automate a minor annoyance in my day-to-day life. You can check out some of what I’ve been building in the Projects section below.",
+  },
+];
+---
+
+<div class="wrap idhero" data-hero>
+  <div class="idcard">
+    <div class="pic">
+      <Image
+        src={portrait}
+        alt={site.name}
+        width={600}
+        height={648}
+        loading="eager"
+        fetchpriority="high"
+        decoding="sync"
+      />
+    </div>
+    <h1>{site.name}</h1>
+    <div class="chips">
+      <span class="chip">{site.role}</span>
+      <span class="chip">{site.employer}</span>
+    </div>
+    <p class="intro">
+      Hi, I’m {firstName}, I’m a software engineer based in the NYC area focused on distributed systems, backend
+      infrastructure, and practical AI tooling. Previously, I built high-throughput public APIs and data consistency
+      systems at Amazon. Lately, I’ve been building AI-driven agent workflows and React/TypeScript tools that turn
+      messy operational bottlenecks into automated systems.
+    </p>
+    <div class="soc">
+      <a href={site.social.github} aria-label="GitHub" rel="me noopener" data-outbound-target="github">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.8.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.6 18.3 5 18.3 5c.7 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5z"
+          ></path>
+        </svg>
+      </a>
+      <a href={site.social.linkedin} aria-label="LinkedIn" rel="me noopener" data-outbound-target="linkedin">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M20.4 20.5h-3.6v-5.6c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9v5.7H9.3V9h3.4v1.6c.5-.9 1.6-1.8 3.4-1.8 3.6 0 4.3 2.4 4.3 5.5v6.2zM5.3 7.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2zM7.1 20.5H3.5V9h3.6v11.5zM22.2 0H1.8C.8 0 0 .8 0 1.7v20.6c0 .9.8 1.7 1.8 1.7h20.4c1 0 1.8-.8 1.8-1.7V1.7C24 .8 23.2 0 22.2 0z"
+          ></path>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <div class="rightcol">
+    <div class="editor">
+      <div class="bar" aria-hidden="true">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="tab">about.md</span>
+      </div>
+      <pre data-about-editor>{aboutTokens.map((t) => <span class={t.cls} data-token>{t.text}</span>)}<span class="cursor" data-cursor aria-hidden="true"></span></pre>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <b>{site.yearsOfExperience}</b>
+        <span>Years of experience</span>
+      </div>
+      <div class="stat">
+        <Image class="logo" src={rutgersLogo} alt="" width={40} height={30} loading="eager" />
+        <b>M.S.</b>
+        <span>Computer Science, {schoolShort}</span>
+      </div>
+      <a
+        class="stat stat-link"
+        href={site.social.github}
+        rel="me noopener"
+        data-outbound-target="github"
+        data-github-contributions-link
+      >
+        <b data-github-contributions>{site.githubContributions}</b>
+        <span>GitHub contributions · last 12 months</span>
+      </a>
+    </div>
+
+    <div class="cta">
+      <a
+        class="btn btn-primary"
+        href="/resume.pdf"
+        download={resumeDownloadName}
+        data-analytics-event="resume-download"
+      >
+        Download résumé
+      </a>
+      <a class="btn btn-ghost" href="#contact">Get in touch</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SESSION_KEY = "about-typed";
+  const editor = document.querySelector<HTMLPreElement>("[data-about-editor]");
+
+  if (editor) {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let alreadyTyped = false;
+    try {
+      alreadyTyped = sessionStorage.getItem(SESSION_KEY) === "1";
+    } catch {
+      alreadyTyped = true;
+    }
+
+    if (!reducedMotion && !alreadyTyped) {
+      const tokenEls = Array.from(editor.querySelectorAll<HTMLSpanElement>("[data-token]"));
+      const fullTexts = tokenEls.map((el) => el.textContent ?? "");
+      for (const el of tokenEls) {
+        el.textContent = "";
+      }
+
+      try {
+        sessionStorage.setItem(SESSION_KEY, "1");
+      } catch {}
+
+      let tokenIndex = 0;
+      let charIndex = 0;
+      const CHARS_PER_TICK = 4;
+      const TICK_MS = 16;
+
+      const finish = () => {
+        for (let i = 0; i < tokenEls.length; i++) {
+          tokenEls[i].textContent = fullTexts[i];
+        }
+        editor.dataset.typed = "done";
+      };
+
+      editor.dataset.typed = "typing";
+      const timer = window.setInterval(() => {
+        let budget = CHARS_PER_TICK;
+        while (budget > 0 && tokenIndex < tokenEls.length) {
+          const target = fullTexts[tokenIndex];
+          const remaining = target.length - charIndex;
+          const step = Math.min(budget, remaining);
+          charIndex += step;
+          budget -= step;
+          tokenEls[tokenIndex].textContent = target.slice(0, charIndex);
+          if (charIndex >= target.length) {
+            tokenIndex++;
+            charIndex = 0;
+          }
+        }
+        if (tokenIndex >= tokenEls.length) {
+          window.clearInterval(timer);
+          finish();
+        }
+      }, TICK_MS);
+    } else {
+      editor.dataset.typed = "done";
+    }
+  }
+</script>
+
+<style>
+  .idhero {
+    display: grid;
+    grid-template-columns: 360px minmax(0, 1fr);
+    gap: 48px;
+    align-items: stretch;
+    padding-top: 72px;
+    padding-bottom: 56px;
+  }
+
+  .idcard {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 28px;
+    padding: 28px 28px 30px;
+    text-align: center;
+    box-shadow: 0 30px 60px -30px var(--shadow);
+  }
+  .pic {
+    position: relative;
+    aspect-ratio: 1 / 1.08;
+    border-radius: 18px;
+    background: var(--hover);
+    overflow: hidden;
+  }
+  .pic img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 30%;
+    display: block;
+  }
+  h1 {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin: 20px 0 0;
+    color: var(--fg-strong);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .chip {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-fill);
+    border-radius: 980px;
+    padding: 4px 12px;
+  }
+  .intro {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 12px auto 16px;
+    line-height: 1.45;
+  }
+  .soc {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+  }
+  .soc a {
+    display: inline-flex;
+    color: var(--accent);
+    transition: opacity var(--dur) var(--ease);
+  }
+  .soc a:hover {
+    opacity: 0.8;
+  }
+  .soc svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+
+  .rightcol {
+    display: flex;
+    flex-direction: column;
+  }
+  .editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -20px var(--shadow);
+    color: var(--fg);
+    font: 14px/1.75 var(--mono);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--hover);
+    border-bottom: 1px solid var(--line);
+  }
+  .dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--line);
+  }
+  .tab {
+    margin-left: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+  }
+  .editor pre {
+    flex: 1;
+    margin: 0;
+    padding: 20px 22px;
+    min-height: 260px;
+    white-space: pre-wrap;
+    font: inherit;
+  }
+  /* With JS enabled, hide token text until the module script either starts typing or marks it done. */
+  :global(html.js) .editor pre:not([data-typed]) [data-token] {
+    visibility: hidden;
+  }
+  .heading-mark,
+  .bullet {
+    color: var(--accent);
+  }
+  .heading-text,
+  .strong {
+    color: var(--fg-strong);
+    font-weight: 700;
+  }
+  .prose {
+    color: var(--fg);
+  }
+  .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 17px;
+    background: var(--accent);
+    vertical-align: -3px;
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .stat {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px 18px;
+    background: var(--surface);
+    text-decoration: none;
+    color: inherit;
+    transition:
+      background-color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
+  }
+  .stat-link:hover {
+    background: var(--hover);
+    border-color: var(--accent);
+  }
+  .stat b {
+    display: block;
+    font-size: clamp(30px, 3.6vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    color: var(--fg-strong);
+  }
+  .stat span {
+    display: block;
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.3;
+  }
+  .stat .logo {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 40px;
+    height: 30px;
+    object-fit: contain;
+    border-radius: 5px;
+  }
+
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 980px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    text-decoration: none;
+    transition:
+      transform 150ms var(--ease),
+      background-color var(--dur) var(--ease);
+  }
+  .btn:active {
+    transform: scale(0.97);
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .btn-ghost {
+    border-color: var(--line);
+    color: var(--fg);
+  }
+  .btn-ghost:hover {
+    background: var(--hover);
+  }
+
+  @media (max-width: 860px) {
+    .idhero {
+      grid-template-columns: 1fr;
+    }
+    .idcard {
+      max-width: 380px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .editor pre {
+      min-height: 0;
+    }
+  }
+  @media (max-width: 520px) {
+    .stats {
+      grid-template-columns: 1fr 1fr;
+    }
+    .stat-link {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.js) .editor pre:not([data-typed]) [data-token] {
+      visibility: visible;
+    }
+    .cursor {
+      animation: none;
+    }
+    .soc a,
+    .stat,
+    .btn {
+      transition: none;
+    }
+  }
+</style>

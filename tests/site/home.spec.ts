@@ -1,10 +1,144 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+/** Records the initial `[data-about-editor]` textContent at `DOMContentLoaded` before subsequent timer ticks. */
+async function recordInitialEditorText(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const win = window as unknown as { __editorInitial?: string };
+    document.addEventListener("DOMContentLoaded", () => {
+      const el = document.querySelector("[data-about-editor]");
+      win.__editorInitial = el?.textContent ?? "";
+    });
+  });
+}
+
+async function readInitialEditorText(page: Page): Promise<string> {
+  return page.evaluate(() => (window as unknown as { __editorInitial?: string }).__editorInitial ?? "");
+}
 
 test("Home page shows name, role and employer", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Dhaivat Patel");
   await expect(page.getByText("Software Engineer", { exact: true })).toBeVisible();
-  await expect(page.getByText("Amazon Ads", { exact: true })).toBeVisible();
+  await expect(page.getByText("Amazon Ads", { exact: true }).first()).toBeVisible();
+});
+
+test("hero renders two equal-height columns with the ID card, stat boxes and CTA buttons", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+
+  const hero = page.locator("[data-hero]");
+  const idCard = hero.locator(".idcard");
+  const rightCol = hero.locator(".rightcol");
+  await expect(idCard).toBeVisible();
+  await expect(rightCol).toBeVisible();
+
+  const cardBox = (await idCard.boundingBox())!;
+  const rightBox = (await rightCol.boundingBox())!;
+  expect(Math.abs(cardBox.height - rightBox.height)).toBeLessThanOrEqual(2);
+
+  // Portrait photo has meaningful alt text and eager/high-priority loading for LCP.
+  const photo = idCard.getByRole("img", { name: "Dhaivat Patel" });
+  await expect(photo).toBeVisible();
+  await expect(photo).toHaveAttribute("loading", "eager");
+  await expect(photo).toHaveAttribute("fetchpriority", "high");
+
+  // Intro and GitHub / LinkedIn links on the ID card.
+  await expect(idCard).toContainText("software engineer based in the NYC area");
+  await expect(idCard.getByRole("link", { name: "GitHub" })).toHaveAttribute(
+    "href",
+    "https://github.com/Dhaivat717",
+  );
+  await expect(idCard.getByRole("link", { name: "LinkedIn" })).toHaveAttribute(
+    "href",
+    "https://www.linkedin.com/in/dhaivat-h-patel/",
+  );
+
+  // Three stat boxes: 5+ years · M.S. Computer Science, Rutgers (decorative logo alt="") · N GitHub contributions linking to GitHub.
+  const stats = rightCol.locator(".stats");
+  await expect(stats).toContainText("5+");
+  await expect(stats).toContainText("Years of experience");
+  await expect(stats).toContainText("M.S.");
+  await expect(stats).toContainText("Computer Science, Rutgers");
+  await expect(stats.locator("img")).toHaveAttribute("alt", "");
+
+  const ghStat = stats.getByRole("link", { name: /GitHub contributions/ });
+  await expect(ghStat).toHaveAttribute("href", "https://github.com/Dhaivat717");
+  await expect(ghStat).toContainText("30");
+  await expect(ghStat).toContainText("last 12 months");
+
+  // Résumé and Get in touch buttons.
+  const resumeBtn = rightCol.getByRole("link", { name: "Download résumé" });
+  await expect(resumeBtn).toHaveAttribute("href", "/resume.pdf");
+  const contactBtn = rightCol.getByRole("link", { name: "Get in touch" });
+  await expect(contactBtn).toHaveAttribute("href", "#contact");
+});
+
+test("the about.md editor types on the first visit in a session and shows full text immediately on reload", async ({
+  page,
+}) => {
+  await recordInitialEditorText(page);
+  await page.goto("/");
+  const editor = page.locator("[data-about-editor]");
+  await expect(editor).toBeVisible();
+
+  // At DOMContentLoaded on the first visit, the editor starts empty/mid-typing (before the final paragraph).
+  expect(await readInitialEditorText(page)).not.toContain("Projects section below.");
+
+  // Wait for typing to finish on the first visit.
+  await expect(editor).toHaveAttribute("data-typed", "done", { timeout: 10_000 });
+  await expect(editor).toContainText("Hi, I’m Dhaivat.");
+  await expect(editor).toContainText("1,000+ investigations");
+  await expect(editor).toContainText("Off the clock");
+  await expect(editor).toContainText("How I work");
+  await expect(editor).toContainText("Projects section below.");
+
+  const sessionFlag = await page.evaluate(() => sessionStorage.getItem("about-typed"));
+  expect(sessionFlag).toBe("1");
+
+  // Reloading in the same session renders the full text immediately at DOMContentLoaded without typing again.
+  await page.reload();
+  expect(await readInitialEditorText(page)).toContain("Projects section below.");
+  await expect(editor).toHaveAttribute("data-typed", "done");
+});
+
+test.describe("with prefers-reduced-motion: reduce", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("the full about.md editor text renders immediately without typing", async ({ page }) => {
+    await recordInitialEditorText(page);
+    await page.goto("/");
+    const editor = page.locator("[data-about-editor]");
+    expect(await readInitialEditorText(page)).toContain("Projects section below.");
+    await expect(editor).toHaveAttribute("data-typed", "done");
+    await expect(editor).toContainText("Hi, I’m Dhaivat.");
+    await expect(editor).toContainText("Off the clock");
+    await expect(editor).toContainText("How I work");
+    await expect(editor).toContainText("Projects section below.");
+  });
+});
+
+test.describe("without JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("the full about.md editor text and baked contributions number render immediately", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const editor = page.locator("[data-about-editor]");
+    await expect(editor).toBeVisible();
+    await expect(editor).toContainText("Hi, I’m Dhaivat.");
+    await expect(editor).toContainText("1,000+ investigations");
+    await expect(editor).toContainText("Off the clock");
+    await expect(editor).toContainText("How I work");
+    await expect(editor).toContainText("Projects section below.");
+
+    const ghStat = page.getByRole("link", { name: /GitHub contributions/ });
+    await expect(ghStat).toBeVisible();
+    await expect(ghStat).toContainText("30");
+    await expect(ghStat).toHaveAttribute("href", "https://github.com/Dhaivat717");
+  });
 });
 
 test("'Skip to content' is the first focusable element and moves focus to the main content", async ({ page }) => {
