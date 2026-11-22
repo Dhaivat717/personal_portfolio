@@ -45,7 +45,9 @@ test("hero renders two equal-height columns with the ID card, stat boxes and CTA
   await expect(photo).toHaveAttribute("fetchpriority", "high");
 
   // Intro and GitHub / LinkedIn links on the ID card.
-  await expect(idCard).toContainText("software engineer based in the NYC area");
+  await expect(idCard).toContainText(
+    "Software engineer, building scalable distributed backend systems, public APIs and practical AI Agents.",
+  );
   await expect(idCard.getByRole("link", { name: "GitHub" })).toHaveAttribute(
     "href",
     "https://github.com/Dhaivat717",

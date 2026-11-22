@@ -19,7 +19,7 @@ const resumeDownloadName = `${site.name.replaceAll(" ", "-")}-Resume.pdf`;
 const firstName = site.name.split(" ")[0];
 const schoolShort = site.alumniOf.split(" ")[0];
 
-type TokenClass = "heading-mark" | "heading-text" | "prose" | "strong" | "bullet";
+type TokenClass = "heading-mark" | "heading-text" | "prose" | "strong";
 
 interface Token {
   cls: TokenClass;
@@ -29,25 +29,17 @@ interface Token {
 const aboutTokens: Token[] = [
   { cls: "heading-mark", text: "## " },
   { cls: "heading-text", text: `Hi, I’m ${firstName}.\n` },
-  { cls: "prose", text: "I’m a software engineer on " },
+  { cls: "prose", text: "I’m a software engineer based in the NYC area at " },
   { cls: "strong", text: `${site.employer},` },
-  { cls: "prose", text: " where I build the\nAPIs and platforms advertisers use in " },
+  { cls: "prose", text: " where I build the APIs and platforms advertisers use in " },
   { cls: "strong", text: "19+ new marketplaces." },
-  { cls: "prose", text: "\n\n" },
-  { cls: "heading-mark", text: "## " },
-  { cls: "heading-text", text: "Lately\n" },
-  { cls: "bullet", text: "- " },
-  { cls: "prose", text: "an LLM on-call agent that ran " },
+  { cls: "prose", text: " Lately, I’ve built an LLM on-call agent that runs " },
   { cls: "strong", text: "1,000+ investigations" },
-  { cls: "prose", text: " in two weeks\n" },
-  { cls: "bullet", text: "- " },
-  { cls: "prose", text: "a parity gate that caught " },
+  { cls: "prose", text: " per week, a parity verification system that caught " },
   { cls: "strong", text: "63 bugs before GA" },
-  { cls: "prose", text: "\n" },
-  { cls: "bullet", text: "- " },
-  { cls: "prose", text: "API fan-out cut from " },
-  { cls: "strong", text: "1,000 calls to 4" },
-  { cls: "prose", text: "\n\n" },
+  { cls: "prose", text: ", and a distributed cache that " },
+  { cls: "strong", text: "reduced cost by 25%" },
+  { cls: "prose", text: ".\n\n" },
   { cls: "heading-mark", text: "## " },
   { cls: "heading-text", text: "Off the clock\n" },
   {
@@ -82,10 +74,7 @@ const aboutTokens: Token[] = [
       <span class="chip">{site.employer}</span>
     </div>
     <p class="intro">
-      Hi, I’m {firstName}, I’m a software engineer based in the NYC area focused on distributed systems, backend
-      infrastructure, and practical AI tooling. Previously, I built high-throughput public APIs and data consistency
-      systems at Amazon. Lately, I’ve been building AI-driven agent workflows and React/TypeScript tools that turn
-      messy operational bottlenecks into automated systems.
+      Software engineer, building scalable distributed backend systems, public APIs and practical AI Agents.
     </p>
     <div class="soc">
       <a href={site.social.github} aria-label="GitHub" rel="me noopener" data-outbound-target="github">
@@ -349,8 +338,7 @@ const aboutTokens: Token[] = [
   :global(html.js) .editor pre:not([data-typed]) [data-token] {
     visibility: hidden;
   }
-  .heading-mark,
-  .bullet {
+  .heading-mark {
     color: var(--accent);
   }
   .heading-text,

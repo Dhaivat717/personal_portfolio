@@ -59,16 +59,17 @@ describe("Home page hero", () => {
     expect(home).toMatch(/<h1[^>]*>Dhaivat Patel<\/h1>/);
     expect(homeText).toContain("Software Engineer");
     expect(homeText).toContain("Amazon Ads");
-    expect(homeText).toContain("software engineer based in the NYC area");
+    expect(homeText).toContain(
+      "Software engineer, building scalable distributed backend systems, public APIs and practical AI Agents.",
+    );
     expect(home).toMatch(/<img[^>]*alt="Dhaivat Patel"/);
 
     // Editor window: tab + full about.md sections baked in.
     expect(homeText).toContain("about.md");
     expect(homeText).toContain("Hi, I’m Dhaivat.");
-    expect(homeText).toContain("Lately");
     expect(homeText).toContain("1,000+ investigations");
     expect(homeText).toContain("63 bugs before GA");
-    expect(homeText).toContain("1,000 calls to 4");
+    expect(homeText).toContain("reduced cost by 25%");
     expect(homeText).toContain("Off the clock");
     expect(homeText).toContain("tennis court");
     expect(homeText).toContain("How I work");
