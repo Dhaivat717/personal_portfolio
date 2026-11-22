@@ -47,7 +47,7 @@ A request for `/` is served straight from `dist/index.html`. At build time, that
 | Path | What it is |
 | --- | --- |
 | `src/settings.ts` | **Site settings module:** the one source for name, role, employer, years of experience, baked GitHub contributions count, links, origin, Turnstile site key. |
-| `src/pages/` | Routes. `index.astro` is the Home page (hero plus `#experience`, `#projects`, `#contact` Section anchors); `404.astro` is the noindexed Not Found page; `projects/index.astro` lists every Personal project; `projects/[slug].astro` is a Deep dive (summary with main media, table of contents, body, previous/next). _(planned)_ `og/*.png` social cards. |
+| `src/pages/` | Routes. `index.astro` is the Home page (hero plus `#experience`, `#projects`, `#contact` Section anchors); `404.astro` is the noindexed Not Found page; `projects/index.astro` lists every Personal project; `projects/[slug].astro` is a Deep dive (summary with main media, table of contents, body, previous/next); `og/[...page].png.ts` renders 1200×630 dark-theme social preview cards at build time (checked by `src/socialCardCheck.ts`). |
 | `src/layouts/Base.astro` | Shared page shell: lang, meta, skip link, nav, `<main>`, footer. |
 | `src/components/` | Reusable Astro components (`Hero.astro`, `Nav.astro`, `ThemeToggle.astro`, `Footer.astro`, `ProjectRow.astro`, `Icon.astro`, `Media.astro`, `ContactForm.astro`). React islands go here too, only where interactivity is needed. |
 | `functions/api/` | Cloudflare Pages Functions: `contact.ts` (`POST /api/contact`) and `github-stats.ts` (`GET /api/github-stats`). |

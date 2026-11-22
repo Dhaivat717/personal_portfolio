@@ -60,7 +60,7 @@ export function socialCardCheck(): AstroIntegration {
           const ogImage = extractOgImage(html);
           if (!ogImage) {
             errors.push(
-              `Page "${route}" has no social card (missing og:image meta tag). Pass ogImage to Base.astro and generate its ${OG_WIDTH}×${OG_HEIGHT} PNG under /og/.`,
+              `Page "${route}" has no social card (missing og:image meta tag). Pass ogImage to Base.astro and generate its ${OG_WIDTH}×${OG_HEIGHT} PNG in src/og.ts and src/pages/og/[...page].png.ts (or pass noindex if it is a utility page).`,
             );
             continue;
           }
