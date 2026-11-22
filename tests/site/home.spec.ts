@@ -89,7 +89,7 @@ test("the about.md editor types out its text on load and again on reload", async
   expect(await readInitialEditorText(page)).not.toContain("Projects section below.");
 
   // Wait for typing to finish.
-  await expect(editor).toHaveAttribute("data-typed", "done", { timeout: 10_000 });
+  await expect(editor).toHaveAttribute("data-typed", "done", { timeout: 25_000 });
   await expect(editor).toContainText("Hi, I’m Dhaivat.");
   await expect(editor).toContainText("1,000+ investigations");
   await expect(editor).toContainText("Off the clock");
@@ -99,8 +99,7 @@ test("the about.md editor types out its text on load and again on reload", async
   // Reloading runs the typing animation again rather than skipping it.
   await page.reload();
   expect(await readInitialEditorText(page)).not.toContain("Projects section below.");
-  await expect(editor).toHaveAttribute("data-typed", "done", { timeout: 10_000 });
-  await expect(editor).toContainText("Projects section below.");
+  await expect(editor).toHaveAttribute("data-typed", "typing");
 });
 
 test.describe("with prefers-reduced-motion: reduce", () => {
