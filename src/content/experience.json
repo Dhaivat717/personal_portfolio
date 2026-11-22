@@ -9,9 +9,9 @@
     "logoAlt": "Amazon Ads logo",
     "bullets": [
       "Built an autonomous LLM on-call triage agent with audit gates and hard safety rules. It ran **1,000+ investigations in two weeks** and removed 3–6 hours a day of team toil.",
-      "Co-designed and led a shadow-traffic parity-verification system for a two-year platform migration. It became the GA gate and surfaced **300+ inconsistent fields and 63 bugs before GA**. The migration then reached 100% in 3 regions with zero fallbacks.",
-      "Shipped the Amazon DSP campaign-management and discovery APIs worldwide in the fifth month: **19 new marketplaces**, with integrator adoption up 58% in three months.",
-      "Scaled the APIs for GA by removing work instead of adding capacity. Audience fan-out went **from 1,000 calls to 4 (−99.6%)** and latency from 30 s to 3 s.",
+      "Co-designed and implemented end-to-end a shadow-traffic parity-verification system for a two-month platform migration, then built an agent to scan Lambda inconsistency logs, trace across codebases, and surface root-cause analyses. It became the GA gate, uncovering **300+ inconsistent fields and 63 bugs before GA**, and the migration reached 100% across 3 regions with zero fallbacks.",
+      "Shipped the Amazon DSP campaign-management and discovery APIs worldwide across **19 new marketplaces**, with integrator adoption up 58% in three months.",
+      "Scaled the APIs for GA by identifying a downstream-call bottleneck and optimizing audience fan-out **from 1,000 calls to 4 (99.6% downstream TPS reduction)**, cutting latency from 30 seconds to 3 seconds.",
       "Led advertiser-level permissions across 13 APIs and designed build-time-enforced internal-field authorization. Auth-service traffic went **from 16K req/s to 0** and write latency fell 41%."
     ],
     "tags": ["Java", "AWS ECS", "Lambda", "DynamoDB", "S3", "SQS", "LLM agents"]

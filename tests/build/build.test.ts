@@ -132,7 +132,7 @@ describe("Home page Experience section", () => {
       "1,000+ investigations in two weeks",
       "300+ inconsistent fields and 63 bugs before GA",
       "19 new marketplaces",
-      "from 1,000 calls to 4 (−99.6%)",
+      "from 1,000 calls to 4 (99.6% downstream TPS reduction)",
       "from 16K req/s to 0",
     ]);
     expect(bulletStrong(roles[1])).toEqual(["−10% service load"]);
