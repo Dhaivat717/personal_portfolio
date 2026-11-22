@@ -10,7 +10,7 @@ export default defineConfig({
   site: site.origin,
   output: "static",
   trailingSlash: "never",
-  build: { format: "file" },
+  build: { format: "file", inlineStylesheets: "always" },
   // Code excerpts in Deep dives render as dark blocks in both themes.
   markdown: { shikiConfig: { theme: "github-dark" } },
   integrations: [

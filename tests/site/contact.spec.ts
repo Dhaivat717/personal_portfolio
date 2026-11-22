@@ -338,6 +338,7 @@ test.describe("Contact form", () => {
 
     await page.goto("/");
     const section = page.locator("#contact");
+    await section.scrollIntoViewIfNeeded();
 
     // Wait for Cloudflare Turnstile's always-pass test widget to populate its hidden token.
     const tokenInput = section.locator('input[name="cf-turnstile-response"]');

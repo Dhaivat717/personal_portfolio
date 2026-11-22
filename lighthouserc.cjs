@@ -17,7 +17,7 @@ module.exports = {
   ci: {
     collect: {
       url: discoverLighthouseUrls(),
-      numberOfRuns: 1,
+      numberOfRuns: 3,
       startServerCommand: `npx wrangler pages dev dist --port ${PORT}`,
       startServerReadyPattern: "Ready on",
       startServerReadyTimeout: 30000,
