@@ -20,7 +20,7 @@ export default defineConfig({
       timeout: 10_000,
     },
     {
-      command: `npx wrangler pages dev dist --port ${PORT} --binding TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA --binding CONTACT_TO=test-recipient@example.invalid --binding RESEND_API_KEY=re_test_key --binding EMAIL_API_URL=http://127.0.0.1:${EMAIL_PORT}/emails`,
+      command: `npx wrangler pages dev dist --port ${PORT} --binding TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA --binding CONTACT_TO=test-recipient@example.invalid --binding RESEND_API_KEY=re_test_key --binding EMAIL_API_URL=http://127.0.0.1:${EMAIL_PORT}/emails --binding GITHUB_TOKEN=ghp_test_token --binding GITHUB_API_URL=http://127.0.0.1:${EMAIL_PORT}/graphql`,
       url: `http://localhost:${PORT}`,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,

@@ -2,6 +2,7 @@ const { existsSync } = require("node:fs");
 const { DEFAULT_DIST_DIR, discoverRoutes, selectLighthouseRoutes } = require("./scripts/routes.ts");
 
 const PORT = 8788;
+const STUB_PORT = PORT + 1;
 const ORIGIN = `http://localhost:${PORT}`;
 
 function discoverLighthouseUrls() {
@@ -18,7 +19,7 @@ module.exports = {
     collect: {
       url: discoverLighthouseUrls(),
       numberOfRuns: 3,
-      startServerCommand: `npx wrangler pages dev dist --port ${PORT}`,
+      startServerCommand: `node scripts/lighthouse-server.mjs ${PORT} ${STUB_PORT}`,
       startServerReadyPattern: "Ready on",
       startServerReadyTimeout: 30000,
       settings: {

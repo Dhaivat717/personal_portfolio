@@ -1,9 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
-import { spawn, spawnSync, type ChildProcess } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
-import net from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { startWrangler } from "./wrangler-helper";
 
 interface TrackedEvent {
   event: string;
@@ -35,28 +35,11 @@ async function trackedEvents(page: Page): Promise<TrackedEvent[]> {
   );
 }
 
-async function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.listen(0, "127.0.0.1", () => {
-      const addr = server.address();
-      if (!addr || typeof addr === "string") {
-        server.close(() => reject(new Error("Could not allocate port")));
-        return;
-      }
-      const { port } = addr;
-      server.close(() => resolve(port));
-    });
-    server.on("error", reject);
-  });
-}
-
 async function serveBuiltSite(siteEnv: string | undefined): Promise<{
   baseUrl: string;
   stop: () => Promise<void>;
 }> {
   const outDir = await mkdtemp(join(tmpdir(), "portfolio-analytics-dist-"));
-  const stateDir = await mkdtemp(join(tmpdir(), "wrangler-analytics-"));
 
   const buildEnv: Record<string, string | undefined> = {
     ...process.env,
@@ -74,63 +57,25 @@ async function serveBuiltSite(siteEnv: string | undefined): Promise<{
   });
   if (build.status !== 0) {
     await rm(outDir, { recursive: true, force: true });
-    await rm(stateDir, { recursive: true, force: true });
     throw new Error(`astro build failed (${build.status}):\n${build.stdout}\n${build.stderr}`);
   }
 
-  const port = await freePort();
-  const inspectorPort = await freePort();
-  let output = "";
-  const child: ChildProcess = spawn(
-    "npx",
-    [
-      "wrangler",
-      "pages",
-      "dev",
-      outDir,
-      "--port",
-      String(port),
-      "--inspector-port",
-      String(inspectorPort),
-      "--persist-to",
-      stateDir,
-    ],
-    { stdio: ["ignore", "pipe", "pipe"] },
+  const stubPort = Number(
+    process.env.PLAYWRIGHT_EMAIL_PORT ?? Number(process.env.PLAYWRIGHT_PORT ?? 8788) + 1,
   );
-  child.stdout?.on("data", (d) => {
-    output += d.toString();
-  });
-  child.stderr?.on("data", (d) => {
-    output += d.toString();
-  });
-
-  const baseUrl = `http://127.0.0.1:${port}`;
-  const deadline = Date.now() + 30_000;
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
-      await rm(outDir, { recursive: true, force: true });
-      await rm(stateDir, { recursive: true, force: true });
-      throw new Error(`wrangler exited early (${child.exitCode}):\n${output}`);
-    }
-    try {
-      const res = await fetch(baseUrl);
-      if (res.ok) break;
-    } catch {
-      // still starting
-    }
-    await new Promise((r) => setTimeout(r, 200));
-  }
+  const srv = await startWrangler(
+    {
+      GITHUB_TOKEN: "ghp_test_token",
+      GITHUB_API_URL: `http://127.0.0.1:${stubPort}/graphql`,
+    },
+    { outDir },
+  );
 
   return {
-    baseUrl,
+    baseUrl: srv.baseUrl,
     stop: async () => {
-      if (child.exitCode === null) {
-        child.kill("SIGTERM");
-        await new Promise((r) => setTimeout(r, 300));
-        if (child.exitCode === null) child.kill("SIGKILL");
-      }
+      await srv.stop();
       await rm(outDir, { recursive: true, force: true });
-      await rm(stateDir, { recursive: true, force: true });
     },
   };
 }
@@ -139,6 +84,7 @@ test.describe("production-only analytics scripts", () => {
   test("renders Umami and Cloudflare Web Analytics only when SITE_ENV=production", async ({
     page,
   }) => {
+    test.setTimeout(60_000);
     // Abort third-party analytics fetches so the assertion is purely about served markup.
     await page.route(/cloud\.umami\.is|cloudflareinsights\.com/, (route) => route.abort());
 
