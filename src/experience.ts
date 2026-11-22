@@ -1,6 +1,7 @@
 import type { ImageMetadata } from "astro";
 import { getCollection, type CollectionEntry } from "astro:content";
 import amazonLogo from "./assets/logos/amazon.webp";
+import botreeLogo from "./assets/logos/botree.png";
 import invidiLogo from "./assets/logos/invidi.webp";
 import rutgersLogo from "./assets/logos/rutgers.webp";
 
@@ -9,6 +10,7 @@ export type CompanyLogoKey = ExperienceEntry["data"]["logo"];
 
 const COMPANY_LOGOS: Record<CompanyLogoKey, ImageMetadata> = {
   amazon: amazonLogo,
+  botree: botreeLogo,
   invidi: invidiLogo,
   rutgers: rutgersLogo,
 };

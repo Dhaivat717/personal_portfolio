@@ -60,5 +60,22 @@
       "Formalized the math in the Intro to Artificial Intelligence course as accessible MathML with Equatio, so screen readers could read every equation."
     ],
     "tags": ["HTML", "MathML", "Equatio", "Microsoft Office"]
+  },
+  {
+    "id": "botree-technologies",
+    "order": 5,
+    "company": "BoTree Technologies",
+    "title": "Software Developer",
+    "when": "May 2019–Jun 2020",
+    "logo": "botree",
+    "logoAlt": "BoTree Technologies logo",
+    "bullets": [
+      "Built a real-world task allocation application in Java to support new transportation solutions, accelerating performance by **5%**.",
+      "Wrote unit tests with JUnit and Mockito and deployed production releases through a CI/CD pipeline.",
+      "Designed data models and views backed by SQLite, wiring URL routes to expose public-facing UI workflows.",
+      "Implemented back-end query logic over ArangoDB exposed through REST APIs consumed by React.",
+      "Configured AWS IAM roles and S3 bucket policies following the principle of least privilege for back-end S3Client access."
+    ],
+    "tags": ["Java", "JUnit", "Mockito", "SQLite", "ArangoDB", "React", "AWS S3", "IAM"]
   }
 ]

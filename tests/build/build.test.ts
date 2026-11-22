@@ -92,7 +92,7 @@ describe("Home page hero", () => {
 });
 
 describe("Home page Experience section", () => {
-  test("renders all four roles newest first with Work highlights, bolded figures, logos and tags", () => {
+  test("renders all five roles newest first with Work highlights, bolded figures, logos and tags", () => {
     const build = buildWithFixture("valid");
     expect(build.status).toBe(0);
 
@@ -105,23 +105,25 @@ describe("Home page Experience section", () => {
       "Software Engineer @ Invidi Technologies",
       "SDE Intern @ Amazon",
       "Accessibility Developer @ Rutgers University",
+      "Software Developer @ BoTree Technologies",
     ]);
 
     const roles = [...section.matchAll(/<article[^>]*data-role[^>]*>([\s\S]*?)<\/article>/g)].map((m) => m[1]);
-    expect(roles).toHaveLength(4);
+    expect(roles).toHaveLength(5);
 
-    // Bullet counts per role: 6, 3, 3, 2.
+    // Bullet counts per role: 6, 3, 3, 2, 5.
     const bulletCounts = roles.map((r) => {
       const list = r.match(/<ul[^>]*data-bullets[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? "";
       return [...list.matchAll(/<li\b/g)].length;
     });
-    expect(bulletCounts).toEqual([6, 3, 3, 2]);
+    expect(bulletCounts).toEqual([6, 3, 3, 2, 5]);
 
     // Dates in monospace left column.
     expect(text(roles[0])).toContain("2023–present");
     expect(text(roles[1])).toContain("Mar–Jul 2023");
     expect(text(roles[2])).toContain("May–Aug 2022");
     expect(text(roles[3])).toContain("Feb 2021–Dec 2022");
+    expect(text(roles[4])).toContain("May 2019–Jun 2020");
 
     // Key figures bolded in bullets; Rutgers bullets have no bolded figure.
     const bulletStrong = (roleHtml: string) => {
@@ -138,6 +140,7 @@ describe("Home page Experience section", () => {
     expect(bulletStrong(roles[1])).toEqual(["−10% service load"]);
     expect(bulletStrong(roles[2])).toEqual(["−80% downstream cache calls"]);
     expect(bulletStrong(roles[3])).toEqual([]);
+    expect(bulletStrong(roles[4])).toEqual(["5%"]);
 
     // Every role has a logo image with meaningful non-empty alt text and tag chips.
     for (const roleHtml of roles) {

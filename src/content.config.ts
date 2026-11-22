@@ -72,7 +72,7 @@ const experience = defineCollection({
     company: z.string().min(1),
     title: z.string().min(1),
     when: z.string().min(1),
-    logo: z.enum(["amazon", "invidi", "rutgers"]),
+    logo: z.enum(["amazon", "invidi", "rutgers", "botree"]),
     logoAlt: z.string().trim().min(1),
     bullets: z.array(z.string().trim().min(1)).min(1),
     tags: z.array(z.string().trim().min(1)).min(1),

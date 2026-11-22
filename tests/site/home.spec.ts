@@ -197,7 +197,7 @@ test("Home Projects band shows Featured projects as rows and links to /projects"
   await expect(page).toHaveURL(/\/projects$/);
 });
 
-test("Experience section shows all four roles newest first without tabs, with loaded logos in white rounded squares", async ({
+test("Experience section shows all five roles newest first without tabs, with loaded logos in white rounded squares", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -208,7 +208,7 @@ test("Experience section shows all four roles newest first without tabs, with lo
   await expect(section.getByRole("tab")).toHaveCount(0);
 
   const roles = section.locator("[data-role]");
-  await expect(roles).toHaveCount(4);
+  await expect(roles).toHaveCount(5);
 
   const headings = await roles.locator("h3").allInnerTexts();
   expect(headings).toEqual([
@@ -216,9 +216,10 @@ test("Experience section shows all four roles newest first without tabs, with lo
     "Software Engineer @ Invidi Technologies",
     "SDE Intern @ Amazon",
     "Accessibility Developer @ Rutgers University",
+    "Software Developer @ BoTree Technologies",
   ]);
 
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 5; i++) {
     const role = roles.nth(i);
     await expect(role).toBeVisible();
     const logoBox = role.locator(".logo-box");
@@ -295,8 +296,8 @@ test("Experience section works at 320 px width and 200% zoom without horizontal 
 
     const section = page.locator("#experience");
     await section.scrollIntoViewIfNeeded();
-    await expect(section.locator("h3")).toHaveCount(4);
-    for (let i = 0; i < 4; i++) {
+    await expect(section.locator("h3")).toHaveCount(5);
+    for (let i = 0; i < 5; i++) {
       await expect(section.locator("h3").nth(i)).toBeVisible();
     }
 
