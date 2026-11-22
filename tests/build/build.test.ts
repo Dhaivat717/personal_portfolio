@@ -119,11 +119,11 @@ describe("Home page Experience section", () => {
     expect(bulletCounts).toEqual([6, 3, 3, 2, 5]);
 
     // Dates in monospace left column.
-    expect(text(roles[0])).toContain("2023–present");
-    expect(text(roles[1])).toContain("Mar–Jul 2023");
-    expect(text(roles[2])).toContain("May–Aug 2022");
-    expect(text(roles[3])).toContain("Feb 2021–Dec 2022");
-    expect(text(roles[4])).toContain("May 2019–Jun 2020");
+    expect(text(roles[0])).toContain("Jul 2023 – Present");
+    expect(text(roles[1])).toContain("Mar 2023 – Jul 2023");
+    expect(text(roles[2])).toContain("May 2022 – Aug 2022");
+    expect(text(roles[3])).toContain("Feb 2021 – Dec 2022");
+    expect(text(roles[4])).toContain("May 2019 – Jun 2020");
 
     // Key figures bolded in bullets; Rutgers bullets have no bolded figure.
     const bulletStrong = (roleHtml: string) => {

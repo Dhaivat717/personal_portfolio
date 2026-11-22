@@ -4,7 +4,7 @@
     "order": 1,
     "company": "Amazon Ads",
     "title": "Software Development Engineer",
-    "when": "2023–present",
+    "when": "Jul 2023 – Present",
     "logo": "amazon",
     "logoAlt": "Amazon Ads logo",
     "bullets": [
@@ -22,7 +22,7 @@
     "order": 2,
     "company": "Invidi Technologies",
     "title": "Software Engineer",
-    "when": "Mar–Jul 2023",
+    "when": "Mar 2023 – Jul 2023",
     "logo": "invidi",
     "logoAlt": "Invidi Technologies logo",
     "bullets": [
@@ -37,7 +37,7 @@
     "order": 3,
     "company": "Amazon",
     "title": "SDE Intern",
-    "when": "May–Aug 2022",
+    "when": "May 2022 – Aug 2022",
     "logo": "amazon",
     "logoAlt": "Amazon logo",
     "bullets": [
@@ -52,7 +52,7 @@
     "order": 4,
     "company": "Rutgers University",
     "title": "Accessibility Developer",
-    "when": "Feb 2021–Dec 2022",
+    "when": "Feb 2021 – Dec 2022",
     "logo": "rutgers",
     "logoAlt": "Rutgers University logo",
     "bullets": [
@@ -66,7 +66,7 @@
     "order": 5,
     "company": "BoTree Technologies",
     "title": "Software Developer",
-    "when": "May 2019–Jun 2020",
+    "when": "May 2019 – Jun 2020",
     "logo": "botree",
     "logoAlt": "BoTree Technologies logo",
     "bullets": [
