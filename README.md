@@ -46,10 +46,10 @@ A request for `/` is served straight from `dist/index.html`. At build time, that
 
 | Path | What it is |
 | --- | --- |
-| `src/settings.ts` | **Site settings module:** the one source for name, role, employer, links, origin, Turnstile site key. |
+| `src/settings.ts` | **Site settings module:** the one source for name, role, employer, years of experience, baked GitHub contributions count, links, origin, Turnstile site key. |
 | `src/pages/` | Routes. `index.astro` is the Home page (hero plus `#experience`, `#projects`, `#contact` Section anchors); `404.astro` is the noindexed Not Found page; `projects/index.astro` lists every Personal project; `projects/[slug].astro` is a Deep dive (summary with main media, table of contents, body, previous/next). _(planned)_ `og/*.png` social cards. |
 | `src/layouts/Base.astro` | Shared page shell: lang, meta, skip link, nav, `<main>`, footer. |
-| `src/components/` | Reusable Astro components (`Nav.astro`, `ThemeToggle.astro`, `Footer.astro`, `ProjectRow.astro`, `Icon.astro`, `Media.astro`). React islands go here too, only where interactivity is needed. |
+| `src/components/` | Reusable Astro components (`Hero.astro`, `Nav.astro`, `ThemeToggle.astro`, `Footer.astro`, `ProjectRow.astro`, `Icon.astro`, `Media.astro`, `ContactForm.astro`). React islands go here too, only where interactivity is needed. |
 | `src/styles/global.css` | `@font-face`, the light/dark **color tokens**, base styles, the `:focus-visible` ring (2px solid accent, 2px offset), layout widths. |
 | `src/content.config.ts` | Content collections. `projects` loads one folder per Personal project, with a strict schema. Media files are checked here too (`src/media.ts`). _(planned)_ the featured cap. |
 | `src/projects.ts` | **Projects module:** `getProjects()`, the one way pages read Personal projects (drafts, ordering, unique `order`). |

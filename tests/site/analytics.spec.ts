@@ -172,7 +172,7 @@ test.describe("analytics custom events", () => {
     await stubUmami(page);
     await page.goto("/");
 
-    const resumeLink = page.getByRole("link", { name: "Résumé" });
+    const resumeLink = page.getByRole("link", { name: "Résumé", exact: true }).first();
     await resumeLink.evaluate((el) => {
       el.addEventListener("click", (e) => e.preventDefault(), { once: true });
     });

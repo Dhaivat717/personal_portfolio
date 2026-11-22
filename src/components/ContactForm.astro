@@ -62,8 +62,6 @@ import { site } from "../settings";
   </div>
 </section>
 
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-
 <script>
   import { trackEvent } from "../analytics";
   import { CONTACT_FIELDS, type ContactFieldName } from "../contact";
@@ -71,6 +69,38 @@ import { site } from "../settings";
   const form = document.getElementById("contact-form") as HTMLFormElement | null;
   const statusEl = document.getElementById("contact-status");
   const submitBtn = form?.querySelector<HTMLButtonElement>('button[type="submit"]') ?? null;
+
+  const TURNSTILE_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+  let turnstileLoaded = false;
+
+  function loadTurnstile() {
+    if (turnstileLoaded || document.querySelector(`script[src="${TURNSTILE_SRC}"]`)) return;
+    turnstileLoaded = true;
+    const script = document.createElement("script");
+    script.src = TURNSTILE_SRC;
+    script.async = true;
+    script.defer = true;
+    document.head.append(script);
+  }
+
+  if (form) {
+    form.addEventListener("focusin", loadTurnstile, { once: true });
+    form.addEventListener("pointerenter", loadTurnstile, { once: true });
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            loadTurnstile();
+            io.disconnect();
+          }
+        },
+        { rootMargin: "200px 0px" },
+      );
+      io.observe(form);
+    } else {
+      loadTurnstile();
+    }
+  }
 
   interface ContactResponse {
     ok: boolean;

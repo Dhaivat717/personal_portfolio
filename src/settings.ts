@@ -9,6 +9,11 @@ export const site = {
   employer: "Amazon Ads",
   yearsOfExperience: "5+",
   alumniOf: "Rutgers University",
+  /**
+   * Baked-in GitHub contributions count (last 12 months); fixed locally and in
+   * CI, and overridable at build time via `GITHUB_CONTRIBUTIONS`.
+   */
+  githubContributions: Number.parseInt(process.env.GITHUB_CONTRIBUTIONS ?? "", 10) || 30,
   /** Path on `origin` for the Person JSON-LD image (updated when the portrait/card lands). */
   image: "/og/home.png",
   social: {

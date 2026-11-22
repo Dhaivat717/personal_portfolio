@@ -46,6 +46,51 @@ function homeProjectsSection(html: string | null): string {
   return html?.match(/<section[^>]*id="projects"[^>]*>([\s\S]*?)<\/section>/)?.[1] ?? "";
 }
 
+describe("Home page hero", () => {
+  test("bakes the ID card, full about.md editor text, three stat boxes and hero CTA links into static HTML", () => {
+    const build = buildWithFixture("valid");
+    expect(build.status).toBe(0);
+
+    const home = build.page("/")!;
+    expect(home).not.toBeNull();
+    const homeText = text(home);
+
+    // ID card: name, chips, intro, portrait image with meaningful alt, social links.
+    expect(home).toMatch(/<h1[^>]*>Dhaivat Patel<\/h1>/);
+    expect(homeText).toContain("Software Engineer");
+    expect(homeText).toContain("Amazon Ads");
+    expect(homeText).toContain(
+      "Software engineer, building scalable distributed backend systems, public APIs and practical AI Agents.",
+    );
+    expect(home).toMatch(/<img[^>]*alt="Dhaivat Patel"/);
+
+    // Editor window: tab + full about.md sections baked in.
+    expect(homeText).toContain("about.md");
+    expect(homeText).toContain("Hi, I’m Dhaivat.");
+    expect(homeText).toContain("1,000+ investigations");
+    expect(homeText).toContain("63 bugs before GA");
+    expect(homeText).toContain("reduced cost by 25%");
+    expect(homeText).toContain("Off the clock");
+    expect(homeText).toContain("tennis court");
+    expect(homeText).toContain("How I work");
+    expect(homeText).toContain("problem solver who learns best by building");
+
+    // Three stat boxes: 5+ years, Masters Rutgers with decorative logo (alt=""), baked contributions linking to GitHub.
+    expect(homeText).toContain("5+");
+    expect(homeText).toContain("Years of experience");
+    expect(homeText).toContain("Masters");
+    expect(homeText).toContain("Computer Science, Rutgers");
+    expect(home).toMatch(/<img[^>]*\balt(?:="")?(?:\s|>)/);
+    expect(homeText).toContain("30");
+    expect(homeText).toMatch(/GitHub contributions[\s\S]*Last 12 months/);
+
+    // Hero buttons: Résumé download and Get in touch (#contact).
+    expect(home).toContain('href="/resume.pdf"');
+    expect(home).toContain('href="#contact"');
+    expect(homeText).toContain("Get in touch");
+  });
+});
+
 describe("Home page Projects band", () => {
   test("shows up to 3 featured projects lowest order first, excludes non-featured, and links to /projects", () => {
     const build = buildWithFixture("featured");
