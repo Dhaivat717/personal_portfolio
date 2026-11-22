@@ -2,9 +2,14 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const DEEP_DIVE = "/projects/whatsapp-auto-wish-bot";
 
-/** The clip inside the figure whose caption matches. */
-function clip(page: Page, caption: RegExp): Locator {
-  return page.getByRole("figure").filter({ hasText: caption }).locator("video");
+/** The nth clip figure on the page (0 = summary hero clip, 1 = Results clip). */
+function clipFigureAt(page: Page, index: number): Locator {
+  return page.getByRole("figure").filter({ has: page.locator("video") }).nth(index);
+}
+
+/** The nth clip video on the page. */
+function clipAt(page: Page, index: number): Locator {
+  return clipFigureAt(page, index).locator("video");
 }
 
 /** Every clip file (MP4/WebM) the page has requested so far. */
@@ -28,7 +33,7 @@ test.describe("a clip", () => {
     const requested = trackClipRequests(page);
     await page.goto(DEEP_DIVE);
     await page.waitForLoadState("networkidle");
-    const results = clip(page, /results/i);
+    const results = clipAt(page, 1);
     await expect(results).not.toBeInViewport();
     expect(requested.filter((url) => url.includes("results-demo"))).toEqual([]);
 
@@ -43,7 +48,7 @@ test.describe("the summary's clip", () => {
 
   test("pauses when scrolled out of view", async ({ page }) => {
     await page.goto(DEEP_DIVE);
-    const hero = clip(page, /sending a wish/i);
+    const hero = clipAt(page, 0);
     await expect.poll(() => isPlaying(hero)).toBe(true);
     await page.mouse.wheel(0, 3000);
     await expect(hero).not.toBeInViewport();
@@ -52,7 +57,7 @@ test.describe("the summary's clip", () => {
 
   test("has a pause/play button that toggles playback and is reachable by keyboard", async ({ page }) => {
     await page.goto(DEEP_DIVE);
-    const hero = clip(page, /sending a wish/i);
+    const hero = clipAt(page, 0);
     await expect.poll(() => isPlaying(hero)).toBe(true);
 
     const pause = page.getByRole("button", { name: "Pause clip" }).first();
@@ -80,7 +85,7 @@ test.describe("with prefers-reduced-motion: reduce", () => {
     const requested = trackClipRequests(page);
     await page.goto(DEEP_DIVE);
     await page.waitForLoadState("networkidle");
-    const hero = clip(page, /sending a wish/i);
+    const hero = clipAt(page, 0);
     await expect(hero).toHaveAttribute("poster", /\S/);
     await expect(hero).toBeVisible();
     expect(await hero.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
@@ -94,8 +99,9 @@ test.describe("without JavaScript", () => {
 
   test("a clip shows its poster and caption", async ({ page, request }) => {
     await page.goto(DEEP_DIVE);
-    const figure = page.getByRole("figure").filter({ hasText: /sending a wish/i });
-    await expect(figure.getByText("Placeholder: the bot sending a wish in a simulated chat.")).toBeVisible();
+    const figure = clipFigureAt(page, 0);
+    await expect(figure.locator("figcaption")).toBeVisible();
+    await expect(figure.locator("figcaption")).toHaveText(/\S/);
     const poster = await figure.locator("video").getAttribute("poster");
     expect(poster).toBeTruthy();
     expect((await request.get(poster!)).status()).toBe(200);

@@ -8,6 +8,10 @@ function pngDimensions(buf: Buffer): { width: number; height: number } | null {
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
 }
 
+async function readSummaryPitch(page: import("@playwright/test").Page): Promise<string> {
+  return (await page.getByRole("main").locator("header p").first().textContent())?.trim() ?? "";
+}
+
 test.describe("SEO metadata", () => {
   test("Home page has title, description and canonical URL", async ({ page }) => {
     await page.goto("/");
@@ -29,10 +33,9 @@ test.describe("SEO metadata", () => {
   test("a Deep dive has title, pitch description and canonical URL without trailing slash", async ({ page }) => {
     await page.goto("/projects/whatsapp-auto-wish-bot");
     await expect(page).toHaveTitle("WhatsApp Auto-Wish Bot · Dhaivat Patel");
-    await expect(page.locator('meta[name="description"]')).toHaveAttribute(
-      "content",
-      "Placeholder: a bot that sends birthday and festival wishes on WhatsApp on time, so nobody gets forgotten.",
-    );
+    const pitch = await readSummaryPitch(page);
+    expect(pitch.length).toBeGreaterThan(0);
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", pitch);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
       "https://dhaivat.dev/projects/whatsapp-auto-wish-bot",
@@ -67,15 +70,18 @@ test.describe("SEO metadata", () => {
     await page.goto("/projects/whatsapp-auto-wish-bot");
     const raw = await page.locator('script[type="application/ld+json"]').textContent();
     expect(raw).not.toBeNull();
+    const pitch = await readSummaryPitch(page);
+    const stack = (
+      await page.getByRole("main").getByRole("list", { name: "Stack" }).getByRole("listitem").allTextContents()
+    ).map((s) => s.trim());
     const ld = JSON.parse(raw!);
     expect(ld).toMatchObject({
       "@context": "https://schema.org",
       "@type": "SoftwareSourceCode",
       name: "WhatsApp Auto-Wish Bot",
-      description:
-        "Placeholder: a bot that sends birthday and festival wishes on WhatsApp on time, so nobody gets forgotten.",
+      description: pitch,
       codeRepository: "https://github.com/Dhaivat717/birthday_festival_wish_bot_whatsapp",
-      programmingLanguage: ["Node.js", "WhatsApp"],
+      programmingLanguage: stack,
       author: {
         "@type": "Person",
         "@id": "https://dhaivat.dev/#person",

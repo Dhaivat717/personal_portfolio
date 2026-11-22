@@ -1,8 +1,8 @@
 ---
 title: WhatsApp Auto-Wish Bot
-pitch: "Placeholder: a bot that sends birthday and festival wishes on WhatsApp on time, so nobody gets forgotten."
-when: "Placeholder"
-stack: [Node.js, WhatsApp]
+pitch: "A 24/7 bot that joins in on birthday and festival wishes on WhatsApp, paying for an AI call only when it's worth it."
+when: "Nov 2026"
+stack: [Node.js, Baileys, Gemini API, Docker, Railway]
 links:
   code: https://github.com/Dhaivat717/birthday_festival_wish_bot_whatsapp
 order: 1000
@@ -11,8 +11,8 @@ icon: cake
 media:
   src: hero.mp4
   poster: hero-poster.jpg
-  caption: "Placeholder: the bot sending a wish in a simulated chat."
-  alt: "Placeholder: a simulated WhatsApp chat receiving a birthday wish."
+  caption: "A local run of simulate.js with made-up names: one message is ignored, and the second wisher triggers the bot's reply."
+  alt: "A terminal running npm run simulate. Three made-up group messages arrive: the first is ignored as not a wish, the next two are birthday wishes from different people, and the bot prints its analysis and replies with a birthday message."
 ---
 
 import Architecture from "./architecture.astro";
@@ -20,29 +20,82 @@ import resultsPoster from "./results-demo-poster.jpg";
 
 ## Problem
 
-Placeholder: the problem this project solves.
+My WhatsApp groups (family, college friends, old teams) run on birthdays and festivals. Someone posts "Happy birthday!", ten people follow within the hour, and if I'm in a meeting or asleep I either miss it or turn up a day late. I wanted something that joins in for me, the way I would: once, warmly, addressed to the right person, and only when the group is actually celebrating.
+
+That sounds like one LLM call per message, but that design fails in three ways:
+
+- **Cost.** A busy group sends hundreds of messages a day, and almost none of them are wishes. Sending every message to a model costs money for nothing.
+- **Wrong person.** A model reading "Happy birthday Lizzy!" will happily wish "Lizzy", even when I've never called her that, or wish someone who wasn't the birthday person at all.
+- **Spam.** If the bot replies to every wish in a thread, wishes for me, or wishes the same person again an hour later, it's worse than not having a bot.
+
+So the real problem was a pipeline: decide cheaply whether there's anything worth spending money on, and refuse to send anything it isn't sure about.
 
 ## Architecture
 
 <Architecture />
 
-Placeholder walk-through: WhatsApp pushes every group message to the bot over a WebSocket. Most messages are dropped by cheap local checks before anything costs money; only a real cluster of wishes reaches Gemini. Every drop happens before the next, more expensive stage, so a busy group costs the same as a quiet one until people start wishing someone.
+Every message reaches the bot as a push over WhatsApp's multi-device WebSocket, through the open-source Baileys library. There's no polling and no headless browser. Each message then goes through a series of checks, cheapest first, and most of them stop it right there.
+
+1. **Whitelisted group.** Only groups listed in `ALLOWED_GROUPS`, by name or group ID, count. Any other chat is ignored, with one exception: if I send `!stats` in my own chat, the bot replies there with its live metrics.
+2. **Sent by someone else.** If the message is mine and it's a wish, I've already wished that person myself. The bot cancels any reply it had queued for that group, puts the person on cooldown, and sends nothing.
+3. **Local pre-filter (01).** A list of regular expressions and emoji rules (`happy birthday`, `hbd`, `many happy returns`, `Saal Mubarak`, `🎂` bursts and so on) decides whether the text looks like a wish at all. It's free and runs in-process, so every message that isn't a wish stops here.
+4. **45-minute sliding window.** Wishes are buffered per group. Nothing happens until at least two *different* people have wished within 45 minutes, so one person's message can't set the bot off.
+5. **Gemini check (02).** This is the only step that costs money. Gemini reads the buffered wishes and decides what's being celebrated (a birthday, an anniversary or a festival), whether it's genuine, and whether the group is wishing *me*. If it says no, the bot doesn't wish, but it DMs me what it saw and why it held back. Calls are capped at 20 a day; past the cap, or if the API fails, a template-based rule engine takes over.
+6. **Resolve who to tag.** A birthday needs exactly one person to address and an anniversary needs both partners, found from the messages' @mentions or my synced contacts. If the bot can't find them, it doesn't guess. It DMs me the original wishes so I can reply myself.
+7. **Cooldown (03).** A person can be wished at most once per group every 48 hours. If they're on cooldown, the message is ignored.
+8. **Human-like delay.** The reply waits a random 45 to 180 seconds and shows "typing…" for 3 seconds before it's sent.
+9. **Send.** The bot checks the cooldown again, records it under every name and number the person goes by, sends the wish, and DMs me a one-line summary of what it said and where.
 
 ## Approach
 
-Placeholder: how it was built.
+### Push, not polling
+
+Baileys speaks WhatsApp's linked-device protocol directly, so the bot is a small Node.js process rather than a browser automating WhatsApp Web. It runs in a Docker container on Railway with an always-restart policy. The session, contacts, cooldowns and metrics live on a mounted volume, so a redeploy doesn't log the bot out or forget who it wished. Linking a headless server to a phone is awkward, so the bot supports a QR code, an 8-character pairing code, or a session seeded from my laptop through an environment variable.
+
+### Cheap checks first
+
+Every stage in the pipeline is cheaper than the one after it. The regex pre-filter and the window are plain in-memory work, and they throw away nearly everything before the model sees it. In a busy group, the bill stays flat until people actually start wishing someone. The daily cap means a burst of festival wishes across many groups still has a ceiling. The model name defaults to `auto`: the bot lists the available Gemini models and picks the newest stable flash-lite one, so a model retirement doesn't take it down.
+
+### Never tag the wrong person
+
+The model helps decide *whether* to wish, but plain code decides *who*. After Gemini answers, the bot checks its targets against the @mentions in the messages and my own contact list:
+
+```js
+// Birthdays need one resolved person; anniversaries need both.
+const requiredTargets = eventType === "anniversary" ? 2 : eventType === "birthday" ? 1 : 0;
+if (requiredTargets > 0 && targetJids.length < requiredTargets) {
+  return {
+    shouldWish: false,
+    unresolvedTarget: true, // the bot DMs me the original wishes instead
+    reasoning: "Could not figure out who to @ …",
+  };
+}
+```
+
+The reply addresses each person by the name saved in my contacts and falls back to an @mention when there isn't one. Nicknames other people use in the chat never make it into the message, so the bot can't call someone "Lizzy" because a friend did.
+
+### Cooldowns under every alias
+
+The same person shows up as a WhatsApp ID, a bare phone number, my saved name for them and whatever the group calls them. A cooldown stored under only one of those wouldn't catch the others, so the bot records it under all of them. Cooldowns are scoped to a group and a person, which means two birthdays in the same group on the same day don't block each other. When I wish someone by hand, the bot records it the same way, so it never wishes after me.
 
 ## Results
 
-Placeholder: what it achieved.
+The bot runs around the clock on Railway and joins in on birthday, anniversary and festival threads in my groups. Before a reply is sent, a thread has to get through every step above, and anything the bot isn't sure about comes to me as a DM instead of going to the group. Spending is bounded by design: at most 20 Gemini calls a day, with a template fallback after that.
+
+The repo has a simulator, `npm run simulate`, that pushes made-up messages through the real pipeline without connecting to WhatsApp. The clip at the top of the page is that run. This clip is the end of it: two more people wish the same person ten minutes later, enough to trigger the bot again, and the 48-hour cooldown blocks the second reply.
 
 <Media
   src="results-demo.mp4"
   poster={resultsPoster}
-  alt="Placeholder: the bot's results in a simulated run."
-  caption="Placeholder: results from a simulated run."
+  alt="The same terminal: a fourth wish starts a new window at one wisher, then a second round of wishes ten minutes later is blocked by the 48-hour cooldown with 48.0 hours remaining."
+  caption="Results from the same run: a repeat round of wishes ten minutes later is blocked by the 48-hour cooldown."
 />
+
+There's also a test suite (`node --test`) covering the pre-filter, the sliding window, cooldowns, manual wishes, @mention and contact resolution, and the two-person rule for anniversaries. It doesn't need a phone or an API key.
 
 ## What I learned
 
-Placeholder: the lessons.
+- **Order the pipeline by cost.** The biggest saving came from the order of the checks, not from a smarter model. Once the free checks run first, the expensive one hardly ever runs.
+- **Don't let the model decide who.** The model is good at "is this a genuine birthday thread?" and unreliable at "whose phone number is this?". Checking its answer against data I already hold (mentions and my contacts) removed a whole class of embarrassing mistakes.
+- **A human fallback beats a guess.** When the bot isn't sure, it sends me a DM instead of posting in the group. A missed auto-wish costs nothing; a wish to the wrong person in a family group costs a lot.
+- **Headless bots need observability.** A WebSocket that silently stops reconnecting looks exactly like a quiet day. A watchdog that flags a connection stuck down for over a minute, structured logs, and a `!stats` command I can send from my phone turned "is it even running?" into something I can check in a few seconds.
