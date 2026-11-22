@@ -82,7 +82,7 @@ describe("Home page hero", () => {
     expect(homeText).toContain("Computer Science, Rutgers");
     expect(home).toMatch(/<img[^>]*\balt(?:="")?(?:\s|>)/);
     expect(homeText).toContain("30");
-    expect(homeText).toMatch(/GitHub contributions[\s\S]*last 12 months/);
+    expect(homeText).toMatch(/GitHub contributions[\s\S]*Last 12 months/);
 
     // Hero buttons: Résumé download and Get in touch (#contact).
     expect(home).toContain('href="/resume.pdf"');

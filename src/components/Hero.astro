@@ -122,7 +122,8 @@ const aboutTokens: Token[] = [
         data-github-contributions-link
       >
         <b data-github-contributions>{site.githubContributions}</b>
-        <span>GitHub contributions · last 12 months</span>
+        <span>GitHub contributions</span>
+        <span class="sub">Last 12 months</span>
       </a>
     </div>
 
@@ -396,6 +397,9 @@ const aboutTokens: Token[] = [
     color: var(--muted);
     margin-top: 4px;
     line-height: 1.3;
+  }
+  .stat .sub {
+    margin-top: 2px;
   }
   .stat .logo {
     position: absolute;

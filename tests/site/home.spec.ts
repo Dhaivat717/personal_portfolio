@@ -68,7 +68,7 @@ test("hero renders two equal-height columns with the ID card, stat boxes and CTA
   const ghStat = stats.getByRole("link", { name: /GitHub contributions/ });
   await expect(ghStat).toHaveAttribute("href", "https://github.com/Dhaivat717");
   await expect(ghStat).toContainText("30");
-  await expect(ghStat).toContainText("last 12 months");
+  await expect(ghStat).toContainText("Last 12 months");
 
   // Résumé and Get in touch buttons.
   const resumeBtn = rightCol.getByRole("link", { name: "Download résumé" });
