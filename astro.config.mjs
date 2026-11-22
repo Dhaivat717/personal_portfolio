@@ -12,8 +12,8 @@ export default defineConfig({
   output: "static",
   trailingSlash: "never",
   build: { format: "file", inlineStylesheets: "always" },
-  // Code excerpts in Deep dives render as dark blocks in both themes.
-  markdown: { shikiConfig: { theme: "github-dark" } },
+  // Code excerpts in Deep dives render as dark blocks in both themes, with AA-compliant token contrast.
+  markdown: { shikiConfig: { theme: "github-dark-high-contrast" } },
   integrations: [
     mdx(),
     react(),

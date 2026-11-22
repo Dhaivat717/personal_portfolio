@@ -1,39 +1,57 @@
 ---
 /**
- * The bot's message pipeline, from the throwaway prototype (placeholder until
- * the Deep dive is written). Upstream: WhatsApp via Baileys. Accent: the one
- * stage that costs money.
+ * The bot's message pipeline, as `handleIncomingMessage` in src/bot.js runs
+ * it. Upstream: WhatsApp via Baileys. Accent: the one stage that costs money.
+ * Branches on the right end in "Ignored" (no reply); branches on the left end
+ * in the owner's own chat (a DM instead of a group reply).
  */
 import { Arrow, Box, Diagram, Group } from "../../../components/diagram";
 
-const x = 40;
-const width = 340;
+const x = 272;
+const width = 300;
 const mid = x + width / 2;
 const height = 52;
-const sinkX = 560;
-const rows = [16, 88, 160, 232, 304, 376, 448];
-const drops = [
-  { row: 1, label: "not a wish" },
-  { row: 2, label: "only 1 wisher" },
-  { row: 3, label: "not genuine" },
-  { row: 4, label: "wished < 48 h ago" },
+const row = (i: number) => 16 + i * 72;
+const rowCenterY = (i: number) => row(i) + height / 2;
+
+const left = { x: 12, width: 120 };
+const right = { x: 712, width: 116 };
+
+const ignored = [
+  { row: 1, label: "other chat", dy: 10 },
+  { row: 2, label: "mine: cooldown" },
+  { row: 3, label: "not a wish" },
+  { row: 4, label: "< 2 wishers" },
+  { row: 7, label: "on cooldown" },
+];
+const toMe = [
+  { row: 1, label: "my !stats", dy: -10 },
+  { row: 5, label: "skip: say why" },
+  { row: 6, label: "can't tag" },
 ];
 ---
 
 <Diagram
-  title="Wish pipeline: a group message passes a local pre-filter, a sliding window, a Gemini check and a cooldown before a delayed reply is sent; each check can drop it."
-  width={720}
-  height={512}
-  caption="Every check drops the message before the next, more expensive one runs."
+  title="Wish pipeline: a WhatsApp message must come from a whitelisted group and someone else, pass a local pre-filter, a 45-minute window of at least two wishers, a Gemini check, target resolution and a 48-hour cooldown before a delayed reply is sent; most checks drop it silently, and a skipped or untaggable wish is sent to the owner as a DM instead."
+  width={840}
+  height={732}
+  caption="Free checks run first; the only paid call, to Gemini, happens after two people have wished."
 >
-  <Group x={sinkX} y={88} width={140} height={268} label="Ignored" detail="no reply sent" center />
-  <Box x={x} y={rows[0]} width={width} height={height} label="Group message arrives" detail="Baileys WebSocket push · no polling" tone="upstream" />
-  <Box x={x} y={rows[1]} width={width} height={height} step="01" label="Local pre-filter" detail="regex + emoji · free, in-process" />
-  <Box x={x} y={rows[2]} width={width} height={height} label="45-min sliding window" detail="needs ≥ 2 distinct wishers" />
-  <Box x={x} y={rows[3]} width={width} height={height} step="02" label="Gemini check" detail="flash-lite · hard cap 20 calls/day" tone="accent" />
-  <Box x={x} y={rows[4]} width={width} height={height} step="03" label="Cooldown" detail="per group + person · 48 h" />
-  <Box x={x} y={rows[5]} width={width} height={height} label="Human-like delay" detail="45–180 s · 3 s “typing…”" />
-  <Box x={x} y={rows[6]} width={width} height={height} label="Send wish, DM a summary to me" detail="record cooldown" />
-  {rows.slice(1).map((y) => <Arrow points={[[mid, y - 20], [mid, y]]} />)}
-  {drops.map(({ row, label }) => <Arrow points={[[x + width, rows[row] + height / 2], [sinkX, rows[row] + height / 2]]} label={label} branch />)}
+  <Group x={left.x} y={row(1)} width={left.width} height={row(6) + height - row(1)} label="My own chat" detail="DM to me" center />
+  <Group x={right.x} y={row(1)} width={right.width} height={row(7) + height - row(1)} label="Ignored" detail="no reply" center />
+
+  <Box x={x} y={row(0)} width={width} height={height} label="Message arrives" detail="Baileys WebSocket push · no polling" tone="upstream" />
+  <Box x={x} y={row(1)} width={width} height={height} label="Whitelisted group" detail="ALLOWED_GROUPS · name or group ID" />
+  <Box x={x} y={row(2)} width={width} height={height} label="Sent by someone else" detail="my own wishes only set a cooldown" />
+  <Box x={x} y={row(3)} width={width} height={height} step="01" label="Local pre-filter" detail="regex + emoji · free, in-process" />
+  <Box x={x} y={row(4)} width={width} height={height} label="45-min sliding window" detail="needs ≥ 2 distinct wishers" />
+  <Box x={x} y={row(5)} width={width} height={height} step="02" label="Gemini check" detail="flash-lite · ≤ 20 calls/day · fallback" tone="accent" />
+  <Box x={x} y={row(6)} width={width} height={height} label="Resolve who to tag" detail="birthday: 1 person · anniversary: 2" />
+  <Box x={x} y={row(7)} width={width} height={height} step="03" label="Cooldown" detail="per group + person · 48 h" />
+  <Box x={x} y={row(8)} width={width} height={height} label="Human-like delay" detail="45–180 s · 3 s “typing…”" />
+  <Box x={x} y={row(9)} width={width} height={height} label="Send wish, DM me a summary" detail="cooldown every name and number" />
+
+  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => <Arrow points={[[mid, row(i) - 20], [mid, row(i)]]} />)}
+  {ignored.map(({ row: i, label, dy = 0 }) => <Arrow points={[[x + width, rowCenterY(i) + dy], [right.x, rowCenterY(i) + dy]]} label={label} branch />)}
+  {toMe.map(({ row: i, label, dy = 0 }) => <Arrow points={[[x, rowCenterY(i) + dy], [left.x + left.width, rowCenterY(i) + dy]]} label={label} branch />)}
 </Diagram>
