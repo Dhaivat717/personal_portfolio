@@ -1,0 +1,110 @@
+---
+/**
+ * Request and query flow for the SQL-Unified Data Abstraction Layer, matching
+ * `app.py` in Dhaivat717/Cross_platform_query_web_application.
+ *
+ * Upstream: the browser form and the three AWS datastores seeded from S3.
+ * Accent: the Flask router and the MongoDB ODBC translation path.
+ * Dashed branches show the non-happy paths (driver/SQL errors, DDL/DML
+ * statements with no result set, zero-row queries, and optional CSV export).
+ */
+import { Arrow, Box, Diagram, Group } from "../../../components/diagram";
+
+const width = 860;
+const mid = width / 2; // 430
+
+const center = { x: 272, width: 316 };
+const left = { x: 16, width: 168 };
+const right = { x: 676, width: 168 };
+
+const storeWidth = 244;
+const storeY = 244;
+const storeH = 56;
+const stores = [
+  { x: 36, cx: 158, label: "MySQL (AWS RDS)", detail: "pymysql · :3306 · multi-stmt" },
+  { x: 308, cx: 430, label: "Amazon Redshift", detail: "psycopg2 · :5439 · columnar" },
+  { x: 580, cx: 702, label: "MongoDB (AWS EC2)", detail: "Devart ODBC · SQL → NoSQL", tone: "accent" as const },
+];
+---
+
+<Diagram
+  title="Query flow: a browser form posts a SQL string and target engine to Flask, which dispatches to MySQL on RDS, Amazon Redshift, or MongoDB on EC2 through Devart ODBC, normalizes rows into a DataFrame for rendering and CSV export, and branches to an error banner, status-only message, or headers-only table for edge cases."
+  width={width}
+  height={536}
+  caption="One SQL form dispatches to three AWS engines; MongoDB is queried in SQL through the Devart ODBC driver."
+>
+  <Group
+    x={20}
+    y={202}
+    width={820}
+    height={114}
+    label="AWS backends · Instacart dataset loaded from S3"
+    tone="upstream"
+  />
+  <Group x={left.x} y={368} width={left.width} height={52} label="Status only" detail="DDL / DML" center />
+  <Group x={left.x} y={444} width={left.width} height={52} label="Empty table" detail="0 rows · headers" center />
+  <Group x={right.x} y={368} width={right.width} height={52} label="Error banner" detail="bad SQL / conn" center />
+
+  <Box
+    x={center.x}
+    y={16}
+    width={center.width}
+    label="Web UI (HTML + Bootstrap)"
+    detail="pick engine + SQL textarea · POST /"
+  />
+  <Box
+    x={center.x}
+    y={100}
+    width={center.width}
+    step="01"
+    label="Flask router (app.py)"
+    detail="starts timer · dispatches by engine"
+    tone="accent"
+  />
+
+  {
+    stores.map((s) => (
+      <Box x={s.x} y={storeY} width={storeWidth} height={storeH} label={s.label} detail={s.detail} tone={s.tone} />
+    ))
+  }
+
+  <Box
+    x={center.x}
+    y={368}
+    width={center.width}
+    step="02"
+    label="Normalize result"
+    detail="pandas DataFrame · elapsed s · CSV"
+  />
+  <Box
+    x={center.x}
+    y={456}
+    width={center.width}
+    step="03"
+    label="Render table + timing"
+    detail="HTML table · last query · elapsed s"
+  />
+  <Box x={right.x} y={456} width={right.width} label="CSV download" detail="GET /getPlotCSV" />
+
+  {/* Form -> Flask */}
+  <Arrow points={[[mid, 68], [mid, 100]]} />
+
+  {/* Flask -> 3 backends */}
+  <Arrow points={[[mid, 152], [mid, 178], [stores[0].cx, 178], [stores[0].cx, storeY]]} label="mysql" labelAt={[210, 171]} />
+  <Arrow points={[[mid, 152], [mid, storeY]]} label="redshift" labelAt={[mid + 8, 194]} />
+  <Arrow points={[[mid, 152], [mid, 178], [stores[2].cx, 178], [stores[2].cx, storeY]]} label="mongodb" labelAt={[596, 171]} tone="accent" />
+
+  {/* 3 backends -> Normalize */}
+  <Arrow points={[[stores[0].cx, storeY + storeH], [stores[0].cx, 338], [mid, 338], [mid, 368]]} />
+  <Arrow points={[[mid, storeY + storeH], [mid, 368]]} />
+  <Arrow points={[[stores[2].cx, storeY + storeH], [stores[2].cx, 338], [mid, 338], [mid, 368]]} />
+
+  {/* Normalize -> Render */}
+  <Arrow points={[[mid, 420], [mid, 456]]} />
+
+  {/* Edge-case branches */}
+  <Arrow points={[[760, 316], [760, 368]]} label="exception" labelAt={[768, 346]} branch />
+  <Arrow points={[[center.x, 386], [left.x + left.width, 386]]} label="DDL/DML" branch />
+  <Arrow points={[[center.x, 404], [244, 404], [244, 470], [left.x + left.width, 470]]} label="0 rows" labelAt={[194, 463]} branch />
+  <Arrow points={[[center.x + center.width, 482], [right.x, 482]]} label="export" branch />
+</Diagram>
