@@ -138,18 +138,26 @@ const pager = [
 
   if (sections.length > 0) {
     let activeLink: HTMLAnchorElement | null = null;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const setActive = (link: HTMLAnchorElement) => {
       if (link === activeLink) return;
       activeLink?.removeAttribute("aria-current");
       link.setAttribute("aria-current", "location");
+      if (window.innerWidth < 1000) {
+        link.scrollIntoView({
+          behavior: reducedMotion ? "auto" : "smooth",
+          inline: "center",
+          block: "nearest",
+        });
+      }
       activeLink = link;
     };
 
     const updateActive = () => {
       const navHeight =
         parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-h")) || 52;
-      const threshold = navHeight + 64;
+      const threshold = navHeight + (window.innerWidth < 1000 ? 104 : 64);
       const atBottom =
         window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
 
@@ -283,6 +291,52 @@ const pager = [
     color: var(--accent);
     border-left-color: var(--accent);
     font-weight: 600;
+  }
+
+  @media (max-width: 999px) {
+    .toc {
+      position: sticky;
+      top: var(--nav-h);
+      z-index: 20;
+      margin: 24px -22px 0;
+      padding: 10px 22px;
+      background: var(--glass);
+      backdrop-filter: saturate(180%) blur(16px);
+      -webkit-backdrop-filter: saturate(180%) blur(16px);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .toc-title {
+      display: none;
+    }
+    .toc ol {
+      display: flex;
+      gap: 8px;
+      border-left: none;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .toc ol::-webkit-scrollbar {
+      display: none;
+    }
+    .toc a {
+      white-space: nowrap;
+      padding: 5px 12px;
+      margin-left: 0;
+      border: 1px solid var(--line);
+      border-radius: 980px;
+      font-size: 13px;
+      background: var(--surface);
+    }
+    .toc a[aria-current="location"] {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--accent-fill);
+      font-weight: 600;
+    }
+    .prose :global(h2) {
+      scroll-margin-top: calc(var(--nav-h) + 64px);
+    }
   }
 
   .prose {

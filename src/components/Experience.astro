@@ -22,11 +22,15 @@ const roles = await getExperience();
           <li>
             <article class="role" data-role={role.id}>
               <div class="side">
-                <strong class="company">{role.company}</strong>
-                <span class="when">{role.when}</span>
-                <span class="logo-box">
-                  <Image src={role.logoImage} alt={role.logoAlt} width={72} height={72} />
-                </span>
+                <div class="side-inner">
+                  <div class="side-text">
+                    <strong class="company">{role.company}</strong>
+                    <span class="when">{role.when}</span>
+                  </div>
+                  <span class="logo-box">
+                    <Image src={role.logoImage} alt={role.logoAlt} width={72} height={72} />
+                  </span>
+                </div>
               </div>
               <div class="details">
                 <h3>{role.title} <span class="at">@ {role.company}</span></h3>
@@ -143,10 +147,33 @@ const roles = await getExperience();
     .role {
       grid-template-columns: 1fr;
       gap: 16px;
-      padding: 28px 0;
+      padding: 20px 0 28px;
     }
     .side {
-      position: static;
+      position: sticky;
+      top: var(--nav-h);
+      z-index: 10;
+      margin: 0 -22px;
+      padding: 10px 22px;
+      border-left: none;
+      background: var(--glass);
+      backdrop-filter: saturate(180%) blur(16px);
+      -webkit-backdrop-filter: saturate(180%) blur(16px);
+    }
+    .side-inner {
+      display: flex;
+      flex-direction: row-reverse;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      border-left: 2px solid var(--accent);
+      padding: 2px 0 2px 14px;
+    }
+    .logo-box {
+      width: 40px;
+      height: 40px;
+      margin-top: 0;
+      flex-shrink: 0;
     }
   }
 </style>
