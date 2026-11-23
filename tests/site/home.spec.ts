@@ -99,7 +99,9 @@ test("the about.md editor types out its text on load and again on reload without
   expect(Math.abs(typingEditorHeight - doneEditorHeight)).toBeLessThanOrEqual(2);
   expect(Math.abs(typingCardHeight - doneCardHeight)).toBeLessThanOrEqual(2);
   await expect(editor).toContainText("Hi, I’m Dhaivat.");
-  await expect(editor).toContainText("1,000+ investigations");
+  await expect(editor).toContainText(
+    "I’m a software engineer based in the NYC area. I am currently at Amazon Ads, where I build the APIs and platforms that advertisers use in 19+ marketplaces. Recently, I built an LLM on-call agent that runs 1,000+ investigations",
+  );
   await expect(editor).toContainText("Off the clock");
   await expect(editor).toContainText("How I work");
   await expect(editor).toContainText("Projects section below.");
@@ -182,7 +184,8 @@ test("there is exactly one h1 and the document language is English", async ({ pa
 test("Home Projects band shows Featured projects as rows and links to /projects", async ({ page }) => {
   await page.goto("/");
   const section = page.locator("#projects");
-  await expect(section.getByRole("heading", { level: 2 })).toHaveText("Projects.");
+  await expect(section.getByRole("heading", { level: 2 })).toHaveText("Projects");
+  await expect(section.locator(".project-list")).toHaveCSS("border-top-width", "1px");
 
   const row = section.getByRole("link", { name: /WhatsApp Auto-Wish Bot/ });
   await expect(row).toHaveAttribute("href", "/projects/whatsapp-auto-wish-bot");
@@ -204,7 +207,7 @@ test("Experience section shows all five roles newest first without tabs, with lo
   await page.goto("/");
 
   const section = page.locator("#experience");
-  await expect(section.getByRole("heading", { level: 2 })).toHaveText("Experience.");
+  await expect(section.getByRole("heading", { level: 2 })).toHaveText("Experience");
   await expect(section.getByRole("tab")).toHaveCount(0);
 
   const roles = section.locator("[data-role]");

@@ -4,7 +4,8 @@ test("/projects lists each Personal project as a row that opens its Deep dive", 
   const res = await page.goto("/projects");
   expect(res?.status()).toBe(200);
   await expect(page).toHaveTitle("Projects · Dhaivat Patel");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Projects.");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Projects");
+  await expect(page.locator(".list")).toHaveCSS("border-top-width", "1px");
 
   const row = page.getByRole("main").getByRole("link", { name: /WhatsApp Auto-Wish Bot/ });
   await expect(row).toHaveAttribute("href", "/projects/whatsapp-auto-wish-bot");
@@ -58,5 +59,41 @@ test.describe("a Deep dive's table of contents and headings", () => {
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/#results$/);
     await expect(page.getByRole("heading", { level: 2, name: "Results" })).toBeInViewport();
+  });
+
+  test("highlights the active section in the accent color as the reader scrolls", async ({ page }) => {
+    await page.goto("/projects/whatsapp-auto-wish-bot");
+    const toc = page.getByRole("navigation", { name: "On this page" });
+    const problemLink = toc.getByRole("link", { name: "Problem" });
+    const architectureLink = toc.getByRole("link", { name: "Architecture" });
+    const learnedLink = toc.getByRole("link", { name: "What I learned" });
+
+    // At the top of the page, Problem is highlighted.
+    await expect(problemLink).toHaveAttribute("aria-current", "location");
+    await expect(architectureLink).not.toHaveAttribute("aria-current", "location");
+
+    // Scroll to Architecture: Architecture becomes active and styled in the accent color.
+    await page.getByRole("heading", { level: 2, name: "Architecture" }).evaluate((el) => {
+      const top = el.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top, behavior: "instant" });
+    });
+    await expect(architectureLink).toHaveAttribute("aria-current", "location");
+    await expect(problemLink).not.toHaveAttribute("aria-current", "location");
+
+    const { activeColor, mutedColor } = await page.evaluate(() => {
+      const active = document.querySelector('.toc a[aria-current="location"]');
+      const inactive = document.querySelector('.toc a:not([aria-current="location"])');
+      return {
+        activeColor: active ? getComputedStyle(active).color : "",
+        mutedColor: inactive ? getComputedStyle(inactive).color : "",
+      };
+    });
+    expect(activeColor).not.toBe(mutedColor);
+
+    // Scrolling to the bottom highlights What I learned.
+    await page.evaluate(() => {
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
+    });
+    await expect(learnedLink).toHaveAttribute("aria-current", "location");
   });
 });
