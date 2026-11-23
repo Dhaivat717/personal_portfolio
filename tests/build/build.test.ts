@@ -97,7 +97,7 @@ describe("Home page Experience section", () => {
     expect(build.status).toBe(0);
 
     const section = homeSection(build.page("/"), "experience");
-    expect(section).toMatch(/<h2[^>]*>Experience\.<\/h2>/);
+    expect(section).toMatch(/<h2[^>]*>Experience<\/h2>/);
 
     const roleHeadings = [...section.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/g)].map((m) => text(m[1]).trim());
     expect(roleHeadings).toEqual([
@@ -182,7 +182,7 @@ describe("Home page Projects band", () => {
     expect(build.status).toBe(0);
 
     const band = homeSection(build.page("/"), "projects");
-    expect(band).toMatch(/<h2[^>]*>Projects\.<\/h2>/);
+    expect(band).toMatch(/<h2[^>]*>Projects<\/h2>/);
 
     const rowHrefs = [...band.matchAll(/<a[^>]*href="(\/projects\/[^"]+)"/g)].map((m) => m[1]);
     expect(rowHrefs).toEqual(["/projects/zeta", "/projects/mid", "/projects/alpha"]);
