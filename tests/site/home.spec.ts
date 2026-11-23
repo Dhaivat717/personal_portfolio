@@ -254,7 +254,7 @@ test("Experience section shows all five roles newest first without tabs, with lo
   await expect(rutgers.locator("[data-bullets] strong")).toHaveCount(0);
 });
 
-test("Experience left column stays sticky while reading a role on desktop and stacks on phones", async ({
+test("Experience header stays sticky while reading a role on desktop and phones", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 600 });
@@ -279,9 +279,13 @@ test("Experience left column stays sticky while reading a role on desktop and st
   expect(sideBox.y).toBeLessThanOrEqual(100);
   expect(detailsBox.y).toBeLessThan(sideBox.y);
 
-  // On phones, the left column is static and stacks above the bullets.
+  // On phones, the compact header row stacks above the bullets and stays sticky under the nav.
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(await side.evaluate((el) => getComputedStyle(el).position)).toBe("static");
+  expect(await side.evaluate((el) => getComputedStyle(el).position)).toBe("sticky");
+  await firstRole.evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    window.scrollTo({ top: window.scrollY + rect.top - 100, behavior: "instant" });
+  });
   const mobileSide = (await side.boundingBox())!;
   const mobileDetails = (await details.boundingBox())!;
   expect(mobileSide.y + mobileSide.height).toBeLessThanOrEqual(mobileDetails.y + 1);

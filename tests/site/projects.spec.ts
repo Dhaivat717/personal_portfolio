@@ -97,3 +97,17 @@ test.describe("a Deep dive's table of contents and headings", () => {
     await expect(learnedLink).toHaveAttribute("aria-current", "location");
   });
 });
+
+test("Deep dive TOC renders as a sticky horizontal pill bar on phones", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/projects/whatsapp-auto-wish-bot");
+  const toc = page.getByRole("navigation", { name: "On this page" });
+  expect(await toc.evaluate((el) => getComputedStyle(el).position)).toBe("sticky");
+
+  await page.getByRole("heading", { level: 2, name: "Architecture" }).evaluate((el) => {
+    const top = el.getBoundingClientRect().top + window.scrollY - 120;
+    window.scrollTo({ top, behavior: "instant" });
+  });
+  await expect(toc).toBeInViewport();
+  await expect(toc.getByRole("link", { name: "Architecture" })).toHaveAttribute("aria-current", "location");
+});
