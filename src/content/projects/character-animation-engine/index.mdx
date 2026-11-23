@@ -1,0 +1,125 @@
+---
+title: Character Animation Engine
+pitch: "A four-stage Unity/C# character simulation stack: collision, animated navigation, social forces, and behavior trees."
+when: "Fall 2021"
+stack: [Unity, C#, NavMesh, Mecanim, TreeSharpPlus, FinalIK]
+links:
+  code: https://github.com/Dhaivat717/B3-Character-Animation
+  play:
+    - label: "Play in browser: Locomotion"
+      url: https://dhaivat717.itch.io/b3-part-1
+    - label: "Play in browser: NavMesh"
+      url: https://dhaivat717.itch.io/b1-part-2
+    - label: "Play in browser: Crowd"
+      url: https://dhaivat717.itch.io/b3-part-3
+order: 1040
+featured: true
+icon: person-standing
+media:
+  src: ./hero.jpg
+  caption: "All four CS-523 stages side by side: QuadTree + GJK/EPA collision, Mecanim NavMesh navigation, Helbing social-force crowds, and TreeSharpPlus behavior-tree storytelling."
+  alt: "Four-panel composite of the Character Animation Engine stages in Unity: top left shows blue agents navigating around red and orange obstacle blocks on a dark arena floor; top right shows ten humanoid characters evacuating through a doorway in a red-walled room; bottom left shows cylindrical crowd agents curving in formation across a dark walled arena; bottom right shows three characters in a living room with a sofa, wall-mounted TV, and standing lamp."
+---
+
+import Architecture from "./architecture.astro";
+import collisionPoster from "./collision-poster.jpg";
+import animationNavigationPoster from "./animation-navigation-poster.jpg";
+import socialForcesPoster from "./social-forces-poster.jpg";
+import behaviorTreesPoster from "./behavior-trees-poster.jpg";
+
+## Problem
+
+Making virtual characters look believable in real time is never one algorithm. A character that walks smoothly still clips through walls without collision detection; a character that avoids obstacles still looks robotic if its legs skate across the floor; a crowd that follows shortest paths still jams at doorways without physical and psychological spacing; and an interactive scene still feels lifeless if agents cannot coordinate roles, react to a human player, and reach for objects in the room.
+
+Over one graduate semester in Rutgers CS-523, our team of three—Dhaivat Patel, Chaitanya Vallabhaneni, and Kavit Shah—built this stack from the ground up in Unity and C# across four progressive repositories: [B2-Collision](https://github.com/Dhaivat717/B2-Collision), [B3-Character-Animation](https://github.com/Dhaivat717/B3-Character-Animation), [B4-SocialForces](https://github.com/Dhaivat717/B4-SocialForces), and [B5_Behavior_Trees](https://github.com/Dhaivat717/B5_Behavior_Trees). Instead of treating them as four disconnected coursework folders, this Deep dive brings the full progression together into one simulation pipeline.
+
+## Architecture
+
+<Architecture />
+
+Every stage runs on Unity's C# runtime (`Rigidbody`, `NavMesh`, `Animator`/Mecanim, and `FinalIK` with `TreeSharpPlus` in the final stage) and adds one higher layer of physical or behavioral agency:
+
+1. **Collision (`01`, B2).** A depth-5 spatial `QuadTree` partitions the XZ plane into cells so only prisms sharing a leaf become candidate pairs, deduplicated with a single integer key (`bigger * prismCount + smaller`). Each candidate pair runs through a GJK simplex test in Minkowski difference space; disjoint pairs exit early without resolution, while overlapping prisms run an Expanding Polytope Algorithm (EPA) loop to compute the minimum translation vector (`penetrationDepthVectorAB`) and separate cleanly.
+2. **Animation and navigation (`02`, B3).** Unity's `NavMeshAgent` computes steering paths, while `LocomotionSimpleAgent` disables direct transform updates (`agt.updatePosition = false`) and projects the path delta into local forward/right velocity parameters (`velx`, `vely`) for a Mecanim 2D blend tree. When `SamplePathPosition` hits an off-mesh jump area (`h.mask & 4`), it branches into `Jump4Blend` automatically while a `LookAt` component steers head gaze toward `steeringTarget`.
+3. **Social forces (`03`, B4).** Crowd agents combine NavMesh waypoints (recomputed every 25 frames) with Helbing's social-forces physics on `Rigidbody` bodies (`80 kg` mass, `3 m` perception sphere). Each step sums goal attraction, exponential neighbor repulsion, physical compression, tangential sliding friction, wall repulsion, and optional leader-following, clamped to `maxSpeed`. Once an agent clears its final waypoint, it deactivates and leaves the simulation.
+4. **Behavior trees (`04`, B5).** `ProjBehaviorTree` orchestrates three autonomous NPCs and a player-controlled character using `TreeSharpPlus` and `FinalIK`. Parallel sequences bring the three NPCs together, a custom `SelectorShuffleBiased` node assigns roles (assigner, light switcher, TV switcher), and FinalIK effectors drive hand-switch reaches and sofa seating. A `DecoratorLoop` with `LeafAssert` watches `bulb.enabled`: if the human player toggles the light more than three times, the loop branches into an angry ending.
+
+## Approach
+
+### Collision
+
+Checking every pair of convex prisms against every other prism scales quadratically. In `B2-Collision`, I built a two-phase pipeline inside `PrismManager.cs` and `QuadTree.cs`. Each update rebuilds a depth-5 `QuadTree` over the spawn region, registers every regular and irregular prism's XZ bounding box, and emits deduplicated `PrismCollision` pairs. For each pair, `CheckCollision` iteratively queries `MinkowskiSupport` to build a simplex around the origin (GJK). If the dot product against the search direction is non-positive, the prisms are guaranteed disjoint. Otherwise, EPA expands the closest edge to the origin until the distance improvement drops below `0.5`, producing the exact separation vector.
+
+<Media
+  src="collision.mp4"
+  poster={collisionPoster}
+  alt="Unity scene showing blue agents and red and orange polygonal obstacle blocks on a dark floor, demonstrating collision detection and separation."
+  caption="Stage 1 (B2-Collision): QuadTree broad-phase culling paired with GJK intersection tests and EPA penetration resolution."
+/>
+
+### Animation and navigation
+
+Coupling a `NavMeshAgent` directly to a humanoid character causes foot sliding because the agent slides at constant speed regardless of stride length. In `B3-Character-Animation`, I separated pathfinding from body placement by turning off `agt.updatePosition` and feeding the smoothed local delta into the Mecanim Animator, letting `OnAnimatorMove` reconcile the transform with `agt.nextPosition`:
+
+```csharp
+Vector3 wdpos = agt.nextPosition - transform.position;
+float dypos = Vector3.Dot(transform.forward, wdpos);
+float dxpos = Vector3.Dot(transform.right, wdpos);
+Vector2 dpos = new Vector2(dxpos, dypos);
+
+float s = Mathf.Min(1.0f, Time.deltaTime / 0.15f);
+sdpos = Vector2.Lerp(sdpos, dpos, s);
+if (Time.deltaTime > 1e-5f) vel = sdpos / Time.deltaTime;
+
+bool smove = vel.magnitude > 0.5f && agt.remainingDistance > agt.radius;
+anim.SetBool("move", smove);
+anim.SetFloat("velx", vel.x);
+anim.SetFloat("vely", vel.y <= 0.5f ? vel.y : (Input.GetKey(KeyCode.LeftShift) ? 1.5f : 1f));
+```
+
+On top of single-character WASD locomotion (Part 1) and click-to-move with automatic obstacle jumping and head look-at (Part 2), I extended the director and `ClickToMove` scripts to a 10-agent room evacuation scene (Part 3) where any individual agent can be clicked and redirected mid-evacuation.
+
+<Media
+  src="animation-navigation.mp4"
+  poster={animationNavigationPoster}
+  alt="Animated humanoid characters in Unity walking, running, jumping over obstacles, and evacuating a room via click-to-move NavMesh navigation."
+  caption="Stage 2 (B3-Character-Animation): root-motion Mecanim blend trees driven by NavMesh steering, off-mesh jumps, and 10-agent crowd redirection."
+/>
+
+### Social forces
+
+NavMesh paths alone tell agents *where* to go, not how to squeeze through a doorway without overlapping. In `B4-SocialForces`, we modeled each agent as an `80 kg` `Rigidbody` with a trigger sphere (`perceptionRadius = 3`) tracking nearby neighbors in a `HashSet<GameObject>`. Teammate Kavit Shah led the core `Agent.cs` force integration and write-up while I worked on wall setup, UI controls, and the Part 2 behaviors (spiral, wall-following, and WASD leader-following). Every tick combines psychological repulsion (`A * exp(-d / B)`), body compression (`k * overlap`), tangential sliding friction (`Kappa`), and wall contact impulses so crowds naturally form lanes and arc around congestion.
+
+<Media
+  src="social-forces.mp4"
+  poster={socialForcesPoster}
+  alt="Crowd simulation in Unity showing cylindrical agents moving in a smooth curved formation across a dark walled arena under social-force steering."
+  caption="Stage 3 (B4-SocialForces): Helbing social-force crowd steering with neighbor repulsion, sliding friction, and leader-following."
+/>
+
+### Behavior trees
+
+The final stage, `B5_Behavior_Trees`, turns steering and animation into an interactive living-room story. Using `TreeSharpPlus` and `FinalIK`, three NPCs walk to a meeting spot in parallel, randomly elect an assigner via our custom `SelectorShuffleBiased` node (40% bias toward the first child), point with speech bubbles, and split up to flip the light switch and TV switch using hand IK effectors before sitting on the sofa with hip IK effectors. I built the `PlayerController`, speech-bubble UI, and initial `ProjBehaviorTree` setup, while teammate Chaitanya Vallabhaneni contributed scene interactions and additional tree updates. Walking near NPCs triggers greetings; flipping the light switch forces the assigned NPC off the sofa to turn it back off, and interrupting them more than three times switches the story into an angry ending.
+
+<Media
+  src="behavior-trees.mp4"
+  poster={behaviorTreesPoster}
+  alt="Three 3D characters in a Unity living room coordinating via speech bubbles, pointing, flipping a light switch and TV switch with IK, and sitting on a sofa while a player interrupts."
+  caption="Stage 4 (B5_Behavior_Trees): TreeSharpPlus role assignment, FinalIK switch and sofa affordances, and a player-triggered branching ending."
+/>
+
+## Results
+
+Across the four repositories, every stage runs interactively in real time in Unity:
+
+- **Collision (B2)** detects and separates overlapping regular and irregular prisms using a depth-5 QuadTree, GJK, and EPA without relying on Unity's built-in collider solver.
+- **Animation and navigation (B3)** shipped as three playable WebGL builds on itch.io—[Locomotion (Part 1)](https://dhaivat717.itch.io/b3-part-1), [NavMesh Navigation (Part 2)](https://dhaivat717.itch.io/b1-part-2), and [10-Agent Crowd (Part 3)](https://dhaivat717.itch.io/b3-part-3)—linked out from the meta strip above rather than embedded so the portfolio stays fast on mobile.
+- **Social forces (B4)** simulates multi-agent crowd navigation, wall repulsion, sliding friction, and interactive leader-following across maze scenes.
+- **Behavior trees (B5)** delivers two distinct interactive endings (friendly greetings vs. the angry light-switcher after more than three player interruptions) driven by live IK affordances and a continuous `DecoratorLoop`.
+
+## What I learned
+
+- **Broad phase and narrow phase solve different bottlenecks.** Building the QuadTree alongside GJK/EPA made it concrete why game engines split spatial partitioning from exact geometry tests: pruning pairs cheaply matters more than micro-optimizing a simplex loop.
+- **Decoupling simulation state from animation prevents skating.** Letting `NavMeshAgent` own the planned path while `Animator` owns the stride—bridged by a smoothed local-space velocity vector—was the single cleanest architectural seam of the semester.
+- **Force tuning is sensitive to scale and clamping.** In social-force crowds, exponential repulsion (`A = 2000`, `B = 0.08`) can launch agents across the scene if two bodies overlap deeply; clamping net force to `maxSpeed` and amortizing NavMesh replanning every 25 frames kept the simulation stable.
+- **Behavior trees shine when worlds are interruptible.** Hard-coding a cutscene breaks the moment a human player flips a light switch; wrapping `LeafAssert(bulb.enabled)` inside a `DecoratorLoop` let the NPC react naturally, leave the sofa, and escalate after three interruptions without a tangle of boolean flags.

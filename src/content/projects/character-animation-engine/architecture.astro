@@ -1,0 +1,98 @@
+---
+/**
+ * Four-stage simulation stack for the Character Animation Engine across the
+ * four CS-523 repositories (B2-Collision, B3-Character-Animation,
+ * B4-SocialForces, B5_Behavior_Trees).
+ *
+ * Upstream: Unity's runtime primitives (Rigidbody, NavMesh, Mecanim, FinalIK,
+ * and TreeSharpPlus).
+ * Accent: the four stages implemented across the semester, building from
+ * geometric collision up to interactive multi-character storytelling.
+ * Dashed branches capture the key runtime edge cases at each stage.
+ */
+import { Arrow, Box, Diagram, Group } from "../../../components/diagram";
+
+const width = 860;
+const mainX = 236;
+const mainW = 368;
+const mid = mainX + mainW / 2; // 420
+const boxH = 56;
+
+const left = { x: 16, width: 172 };
+const right = { x: 668, width: 176 };
+
+const row = (i: number) => 20 + i * 88;
+const centerY = (i: number) => row(i) + boxH / 2;
+---
+
+<Diagram
+  title="Four-stage character animation stack: all four stages run on Unity's runtime primitives (Rigidbody, NavMesh, Mecanim, FinalIK, TreeSharpPlus), progressing from Stage 1 QuadTree plus GJK and EPA collision resolution, to Stage 2 Mecanim locomotion coupled to NavMesh pathfinding, to Stage 3 Helbing social-force crowd steering, to Stage 4 TreeSharpPlus behavior trees with FinalIK affordances; dashed branches show early-out collision pruning, off-mesh jump links, goal-completion agent removal, and the player-triggered angry ending."
+  width={width}
+  height={404}
+  caption="All four CS-523 stages run on Unity's physics, navigation, animation, and IK primitives, each adding a higher layer of agency."
+>
+  <Group
+    x={mainX - 18}
+    y={10}
+    width={mainW + 36}
+    height={row(3) + boxH + 14}
+    label="Unity runtime · Rigidbody · NavMesh · Mecanim · FinalIK"
+    tone="upstream"
+  />
+  <Group x={left.x} y={row(0) + 28} width={left.width} height={boxH} label="Pruned early" detail="no EPA needed" center />
+  <Group x={left.x} y={row(2) + 28} width={left.width} height={boxH} label="Goal reached" detail="deactivate agent" center />
+  <Group x={right.x} y={row(1) + 28} width={right.width} height={boxH} label="Jump4Blend" detail="off-mesh jump" center />
+  <Group x={right.x} y={row(3) + 28} width={right.width} height={boxH} label="Angry ending" detail="lamp toggled > 3×" center />
+
+  <Box
+    x={mainX}
+    y={row(0) + 28}
+    width={mainW}
+    height={boxH}
+    step="01"
+    label="Collision (B2)"
+    detail="QuadTree broad phase · GJK + EPA resolve"
+    tone="accent"
+  />
+  <Box
+    x={mainX}
+    y={row(1) + 28}
+    width={mainW}
+    height={boxH}
+    step="02"
+    label="Animation & navigation (B3)"
+    detail="Mecanim 2D blend · NavMesh · 10-agent crowd"
+    tone="accent"
+  />
+  <Box
+    x={mainX}
+    y={row(2) + 28}
+    width={mainW}
+    height={boxH}
+    step="03"
+    label="Social forces (B4)"
+    detail="Helbing repulsion · friction · leader/wall"
+    tone="accent"
+  />
+  <Box
+    x={mainX}
+    y={row(3) + 28}
+    width={mainW}
+    height={boxH}
+    step="04"
+    label="Behavior trees (B5)"
+    detail="TreeSharpPlus · biased shuffle · FinalIK"
+    tone="accent"
+  />
+
+  {/* Vertical progression across the four stages */}
+  <Arrow points={[[mid, row(0) + 28 + boxH], [mid, row(1) + 28]]} />
+  <Arrow points={[[mid, row(1) + 28 + boxH], [mid, row(2) + 28]]} />
+  <Arrow points={[[mid, row(2) + 28 + boxH], [mid, row(3) + 28]]} />
+
+  {/* Edge-case branches */}
+  <Arrow points={[[mainX, centerY(0) + 28], [left.x + left.width, centerY(0) + 28]]} label="disjoint" branch />
+  <Arrow points={[[mainX + mainW, centerY(1) + 28], [right.x, centerY(1) + 28]]} label="mask & 4" branch />
+  <Arrow points={[[mainX, centerY(2) + 28], [left.x + left.width, centerY(2) + 28]]} label="path empty" branch />
+  <Arrow points={[[mainX + mainW, centerY(3) + 28], [right.x, centerY(3) + 28]]} label="interrupt" branch />
+</Diagram>
