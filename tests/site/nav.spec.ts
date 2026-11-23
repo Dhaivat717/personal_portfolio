@@ -283,7 +283,11 @@ test.describe("the Projects drop-down", () => {
     const button = nav.getByRole("button", { name: "Projects" });
     await button.focus();
     await page.keyboard.press("Enter");
-    for (const name of ["WhatsApp Auto-Wish Bot", "All projects →", "Contact"]) {
+    const menuId = await button.getAttribute("aria-controls");
+    const menuLinks = await nav.locator(`#${menuId} a`).allInnerTexts();
+    expect(menuLinks.length).toBeGreaterThanOrEqual(2);
+    expect(menuLinks.at(-1)).toBe("All projects →");
+    for (const name of [...menuLinks, "Contact"]) {
       await page.keyboard.press("Tab");
       await expect(nav.getByRole("link", { name })).toBeFocused();
     }
