@@ -47,7 +47,7 @@ function homeSection(html: string | null, id: string): string {
 }
 
 describe("Home page hero", () => {
-  test("bakes the ID card, full about.md editor text, three stat boxes and hero CTA links into static HTML", () => {
+  test("bakes the ID card, full about.me editor text, three stat boxes and hero CTA links into static HTML", () => {
     const build = buildWithFixture("valid");
     expect(build.status).toBe(0);
 
@@ -64,8 +64,8 @@ describe("Home page hero", () => {
     );
     expect(home).toMatch(/<img[^>]*alt="Dhaivat Patel"/);
 
-    // Editor window: tab + full about.md sections baked in.
-    expect(homeText).toContain("about.md");
+    // Editor window: tab + full about.me sections baked in.
+    expect(homeText).toContain("about.me");
     expect(homeText).toContain("Hi, I’m Dhaivat.");
     expect(homeText).toContain("1,000+ investigations");
     expect(homeText).toContain("63 bugs before GA");

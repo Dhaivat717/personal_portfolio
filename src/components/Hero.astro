@@ -3,7 +3,7 @@
  * Home page hero (variant D): two equal-height columns.
  * - Left: ID card with rounded portrait photo (LCP), name (h1), role & employer
  *   chips from site settings, intro copy, and GitHub/LinkedIn icon links.
- * - Right: editor window (`about.md`) that types out on every load. Under
+ * - Right: editor window (`about.me`) that types out on every load. Under
  *   prefers-reduced-motion or without JS, it renders in full immediately.
  * - Below the editor: three stat boxes (5+ Years of experience · Masters Computer
  *   Science, Rutgers with decorative Rutgers logo · N GitHub contributions ·
@@ -99,7 +99,7 @@ const aboutTokens: Token[] = [
         <span class="dot"></span>
         <span class="dot"></span>
         <span class="dot"></span>
-        <span class="tab">about.md</span>
+        <span class="tab">about.me</span>
       </div>
       <pre data-about-editor>{aboutTokens.map((t) => <span class={t.cls} data-token>{t.text}</span>)}<span class="cursor" data-cursor aria-hidden="true"></span></pre>
     </div>
