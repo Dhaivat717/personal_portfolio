@@ -4,3 +4,5 @@ pages_build_output_dir = "dist"
 
 [env.production.vars]
 SITE_ENV = "production"
+CF_WEB_ANALYTICS_TOKEN = "233ea614356f4bec81ce06b2f1fb1be1"
+UMAMI_WEBSITE_ID = "80e3d3d1-edf7-41f0-8408-02db6699928f"
