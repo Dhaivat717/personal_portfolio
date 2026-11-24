@@ -56,12 +56,22 @@ function isScriptResource(resource: LoadedResource): boolean {
   );
 }
 
-function isClipResource(resource: LoadedResource): boolean {
+function isClipResource(
+  resource: Pick<LoadedResource, "url" | "resourceType" | "contentType">,
+): boolean {
   return (
     resource.resourceType === "media" ||
     /^video\//i.test(resource.contentType) ||
     /\.(?:mp4|webm)(?:\?|$)/i.test(resource.url)
   );
+}
+
+/** Clips are excluded from /projects and Deep dive first-load budgets. */
+export function isExcludedFromBudget(
+  category: BudgetCategory,
+  resource: Pick<LoadedResource, "url" | "resourceType" | "contentType">,
+): boolean {
+  return category !== "home" && isClipResource(resource);
 }
 
 function formatKb(bytes: number): string {
@@ -76,13 +86,11 @@ export function evaluateBudgets(
   const limit = budgets[category];
   const jsLimitBytes = limit.jsKb * 1024;
   const firstLoadLimitBytes = limit.firstLoadKb * 1024;
-  const excludeClips = category !== "home";
-
   let jsBytes = 0;
   let firstLoadBytes = 0;
 
   for (const resource of resources) {
-    if (excludeClips && isClipResource(resource)) continue;
+    if (isExcludedFromBudget(category, resource)) continue;
     firstLoadBytes += resource.compressedBytes;
     if (isScriptResource(resource)) {
       jsBytes += resource.compressedBytes;
