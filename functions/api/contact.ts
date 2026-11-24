@@ -242,5 +242,5 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     );
   }
 
-  return respondSuccess(json, "Thanks — your message has been sent.");
+  return respondSuccess(json, "Thanks, your message has been sent.");
 };
