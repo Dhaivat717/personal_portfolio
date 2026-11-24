@@ -5,10 +5,20 @@
  */
 export const site = {
   name: "Dhaivat Patel",
+  alternateNames: ["Dhaivat", "Dhaivat H. Patel"],
   role: "Software Engineer",
   employer: "Amazon Ads",
+  parentEmployer: "Amazon",
+  location: "New York City",
   yearsOfExperience: "5+",
   alumniOf: "Rutgers University",
+  knowsAbout: [
+    "Software Development",
+    "Distributed Systems",
+    "Backend Engineering",
+    "Public APIs",
+    "AI Agents",
+  ],
   /**
    * Baked-in GitHub contributions count (last 12 months); fixed locally and in
    * CI, and overridable at build time via `GITHUB_CONTRIBUTIONS`.
@@ -22,6 +32,11 @@ export const site = {
   },
   /** Canonical origin, no trailing slash. */
   origin: "https://dhaivat.dev",
+  /** Shared Schema.org `@id` IRIs referenced across pages' JSON-LD graphs. */
+  jsonLdIds: {
+    website: "https://dhaivat.dev/#website",
+    person: "https://dhaivat.dev/#person",
+  },
   /**
    * Turnstile site key (public): explicit `TURNSTILE_SITE_KEY` override when
    * set, otherwise the production key on Cloudflare Pages (`CF_PAGES=1`) or

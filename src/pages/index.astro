@@ -12,17 +12,44 @@ const featuredProjects = await getFeaturedProjects();
 const roleLabel = `${site.role.charAt(0)}${site.role.slice(1).toLowerCase()}`;
 const description = `${roleLabel} at ${site.employer} with ${site.yearsOfExperience} years of experience building distributed systems, developer tools and personal projects.`;
 
-const personJsonLd = {
+const originHost = new URL(site.origin).hostname;
+const homeJsonLd = {
   "@context": "https://schema.org",
-  "@type": "Person",
-  "@id": `${site.origin}/#person`,
-  name: site.name,
-  jobTitle: site.role,
-  worksFor: { "@type": "Organization", name: site.employer },
-  url: site.origin,
-  image: new URL(site.image, site.origin).href,
-  alumniOf: { "@type": "CollegeOrUniversity", name: site.alumniOf },
-  sameAs: [site.social.github, site.social.linkedin],
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": site.jsonLdIds.website,
+      url: site.origin,
+      name: site.name,
+      alternateName: [originHost],
+      publisher: { "@id": site.jsonLdIds.person },
+    },
+    {
+      "@type": "ProfilePage",
+      "@id": `${site.origin}/#profile`,
+      url: `${site.origin}/`,
+      mainEntity: { "@id": site.jsonLdIds.person },
+      isPartOf: { "@id": site.jsonLdIds.website },
+    },
+    {
+      "@type": "Person",
+      "@id": site.jsonLdIds.person,
+      name: site.name,
+      alternateName: [...site.alternateNames],
+      jobTitle: site.role,
+      worksFor: {
+        "@type": "Organization",
+        name: site.employer,
+        parentOrganization: { "@type": "Organization", name: site.parentEmployer },
+      },
+      url: site.origin,
+      image: new URL(site.image, site.origin).href,
+      alumniOf: { "@type": "CollegeOrUniversity", name: site.alumniOf },
+      homeLocation: { "@type": "Place", name: site.location },
+      knowsAbout: [...site.knowsAbout],
+      sameAs: [site.social.github, site.social.linkedin],
+    },
+  ],
 };
 ---
 
@@ -30,7 +57,7 @@ const personJsonLd = {
   title={`${site.name} · ${site.role} @ ${site.employer}`}
   description={description}
   ogImage={site.image}
-  jsonLd={personJsonLd}
+  jsonLd={homeJsonLd}
 >
   <Hero />
 
