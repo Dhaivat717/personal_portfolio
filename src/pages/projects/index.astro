@@ -1,17 +1,35 @@
 ---
 import ProjectRow from "../../components/ProjectRow.astro";
 import Base from "../../layouts/Base.astro";
-import { getProjects } from "../../projects";
+import { getProjects, projectHref } from "../../projects";
 import { site } from "../../settings";
 
 const projects = await getProjects();
+const title = `Projects · ${site.name}`;
+const description = `Personal projects by ${site.name}: what each one does, how it's built and what was learned.`;
+
+const collectionJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "@id": `${site.origin}/projects#collection`,
+  url: `${site.origin}/projects`,
+  name: title,
+  description,
+  isPartOf: { "@id": site.jsonLdIds.website },
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: projects.length,
+    itemListElement: projects.map((project, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: project.data.title,
+      url: new URL(projectHref(project), site.origin).href,
+    })),
+  },
+};
 ---
 
-<Base
-  title={`Projects · ${site.name}`}
-  description={`Personal projects by ${site.name}: what each one does, how it's built and what was learned.`}
-  ogImage="/og/projects.png"
->
+<Base title={title} description={description} ogImage="/og/projects.png" jsonLd={collectionJsonLd}>
   <div class="wrap page">
     <h1>Projects</h1>
     <ul class="list">

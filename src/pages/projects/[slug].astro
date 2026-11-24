@@ -34,20 +34,33 @@ const { Content, headings } = await render(project);
 const toc = spineHeadings(project, headings);
 warnOnWordCount(project);
 
-const softwareJsonLd = {
+const pageUrl = new URL(projectHref(project), site.origin).href;
+const deepDiveJsonLd = {
   "@context": "https://schema.org",
-  "@type": "SoftwareSourceCode",
-  name: title,
-  description: pitch,
-  url: new URL(projectHref(project), site.origin).href,
-  codeRepository: links.code,
-  programmingLanguage: stack,
-  author: {
-    "@type": "Person",
-    "@id": `${site.origin}/#person`,
-    name: site.name,
-    url: site.origin,
-  },
+  "@graph": [
+    {
+      "@type": "SoftwareSourceCode",
+      name: title,
+      description: pitch,
+      url: pageUrl,
+      codeRepository: links.code,
+      programmingLanguage: stack,
+      author: {
+        "@type": "Person",
+        "@id": site.jsonLdIds.person,
+        name: site.name,
+        url: site.origin,
+      },
+    },
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: `${site.origin}/` },
+        { "@type": "ListItem", position: 2, name: "Projects", item: `${site.origin}/projects` },
+        { "@type": "ListItem", position: 3, name: title, item: pageUrl },
+      ],
+    },
+  ],
 };
 
 const pager = [
@@ -61,7 +74,7 @@ const pager = [
   description={pitch}
   ogImage={`/og/projects/${project.id}.png`}
   ogType="article"
-  jsonLd={softwareJsonLd}
+  jsonLd={deepDiveJsonLd}
 >
   <div class="wrap deep-dive">
     <header class="summary">

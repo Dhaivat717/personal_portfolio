@@ -12,6 +12,18 @@ async function readSummaryPitch(page: import("@playwright/test").Page): Promise<
   return (await page.getByRole("main").locator("header p").first().textContent())?.trim() ?? "";
 }
 
+async function readJsonLd(page: import("@playwright/test").Page): Promise<Record<string, unknown>> {
+  const raw = await page.locator('script[type="application/ld+json"]').textContent();
+  expect(raw).not.toBeNull();
+  return JSON.parse(raw!) as Record<string, unknown>;
+}
+
+function findGraphNode(ld: Record<string, unknown>, type: string): Record<string, unknown> | undefined {
+  expect(ld["@context"]).toBe("https://schema.org");
+  expect(Array.isArray(ld["@graph"])).toBe(true);
+  return (ld["@graph"] as Record<string, unknown>[]).find((node) => node["@type"] === type);
+}
+
 test.describe("SEO metadata", () => {
   test("Home page has title, description and canonical URL", async ({ page }) => {
     await page.goto("/");
@@ -42,23 +54,54 @@ test.describe("SEO metadata", () => {
     );
   });
 
-  test("Home page includes Person JSON-LD", async ({ page }) => {
+  test("Home page includes WebSite, ProfilePage and enriched Person JSON-LD", async ({ page }) => {
     await page.goto("/");
-    const raw = await page.locator('script[type="application/ld+json"]').textContent();
-    expect(raw).not.toBeNull();
-    const ld = JSON.parse(raw!);
-    expect(ld).toMatchObject({
-      "@context": "https://schema.org",
+    const ld = await readJsonLd(page);
+
+    expect(findGraphNode(ld, "WebSite")).toMatchObject({
+      "@type": "WebSite",
+      "@id": "https://dhaivat.dev/#website",
+      url: "https://dhaivat.dev",
+      name: "Dhaivat Patel",
+      alternateName: ["dhaivat.dev"],
+      publisher: { "@id": "https://dhaivat.dev/#person" },
+    });
+
+    expect(findGraphNode(ld, "ProfilePage")).toMatchObject({
+      "@type": "ProfilePage",
+      "@id": "https://dhaivat.dev/#profile",
+      url: "https://dhaivat.dev/",
+      mainEntity: { "@id": "https://dhaivat.dev/#person" },
+      isPartOf: { "@id": "https://dhaivat.dev/#website" },
+    });
+
+    const person = findGraphNode(ld, "Person");
+    expect(person).toMatchObject({
       "@type": "Person",
       "@id": "https://dhaivat.dev/#person",
       name: "Dhaivat Patel",
+      alternateName: ["Dhaivat", "Dhaivat H. Patel"],
       jobTitle: "Software Engineer",
-      worksFor: { "@type": "Organization", name: "Amazon Ads" },
+      worksFor: {
+        "@type": "Organization",
+        name: "Amazon Ads",
+        parentOrganization: { "@type": "Organization", name: "Amazon" },
+      },
       url: "https://dhaivat.dev",
       alumniOf: { "@type": "CollegeOrUniversity", name: "Rutgers University" },
+      homeLocation: { "@type": "Place", name: "New York City" },
     });
-    expect(ld.image).toMatch(/^https:\/\/dhaivat\.dev\/.+/);
-    expect(ld.sameAs).toEqual(
+    expect(person?.image).toMatch(/^https:\/\/dhaivat\.dev\/.+/);
+    expect(person?.knowsAbout).toEqual(
+      expect.arrayContaining([
+        "Software Development",
+        "Distributed Systems",
+        "Backend Engineering",
+        "Public APIs",
+        "AI Agents",
+      ]),
+    );
+    expect(person?.sameAs).toEqual(
       expect.arrayContaining([
         "https://github.com/Dhaivat717",
         "https://www.linkedin.com/in/dhaivat-h-patel/",
@@ -66,20 +109,55 @@ test.describe("SEO metadata", () => {
     );
   });
 
-  test("a Deep dive includes SoftwareSourceCode JSON-LD referencing the Home Person", async ({ page }) => {
+  test("/projects includes CollectionPage and ItemList JSON-LD listing every Personal project", async ({ page }) => {
+    await page.goto("/projects");
+    const ld = await readJsonLd(page);
+    const linkHrefs = await page
+      .getByRole("main")
+      .locator("ul a[href^='/projects/']")
+      .evaluateAll((els) => els.map((el) => el.getAttribute("href")));
+    expect(linkHrefs.length).toBeGreaterThan(0);
+
+    expect(ld).toMatchObject({
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "@id": "https://dhaivat.dev/projects#collection",
+      url: "https://dhaivat.dev/projects",
+      name: "Projects · Dhaivat Patel",
+      isPartOf: { "@id": "https://dhaivat.dev/#website" },
+      mainEntity: {
+        "@type": "ItemList",
+        numberOfItems: linkHrefs.length,
+      },
+    });
+    const mainEntity = ld.mainEntity as { itemListElement: Array<{ "@type": string; position: number; name: string; url: string }> };
+    const items = mainEntity.itemListElement;
+    expect(items).toHaveLength(linkHrefs.length);
+    for (let i = 0; i < linkHrefs.length; i++) {
+      expect(items[i]).toMatchObject({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `https://dhaivat.dev${linkHrefs[i]}`,
+      });
+      expect(items[i].name.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("a Deep dive includes SoftwareSourceCode and BreadcrumbList JSON-LD referencing the Home Person", async ({
+    page,
+  }) => {
     await page.goto("/projects/whatsapp-auto-wish-bot");
-    const raw = await page.locator('script[type="application/ld+json"]').textContent();
-    expect(raw).not.toBeNull();
     const pitch = await readSummaryPitch(page);
     const stack = (
       await page.getByRole("main").getByRole("list", { name: "Stack" }).getByRole("listitem").allTextContents()
     ).map((s) => s.trim());
-    const ld = JSON.parse(raw!);
-    expect(ld).toMatchObject({
-      "@context": "https://schema.org",
+    const ld = await readJsonLd(page);
+
+    expect(findGraphNode(ld, "SoftwareSourceCode")).toMatchObject({
       "@type": "SoftwareSourceCode",
       name: "WhatsApp Auto-Wish Bot",
       description: pitch,
+      url: "https://dhaivat.dev/projects/whatsapp-auto-wish-bot",
       codeRepository: "https://github.com/Dhaivat717/birthday_festival_wish_bot_whatsapp",
       programmingLanguage: stack,
       author: {
@@ -88,6 +166,20 @@ test.describe("SEO metadata", () => {
         name: "Dhaivat Patel",
         url: "https://dhaivat.dev",
       },
+    });
+
+    expect(findGraphNode(ld, "BreadcrumbList")).toMatchObject({
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: "https://dhaivat.dev/" },
+        { "@type": "ListItem", position: 2, name: "Projects", item: "https://dhaivat.dev/projects" },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: "WhatsApp Auto-Wish Bot",
+          item: "https://dhaivat.dev/projects/whatsapp-auto-wish-bot",
+        },
+      ],
     });
   });
 
