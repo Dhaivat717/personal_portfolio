@@ -3,6 +3,7 @@ import {
   budgetCategoryForRoute,
   compressedSize,
   evaluateBudgets,
+  isExcludedFromBudget,
   loadBudgets,
   type LoadedResource,
 } from "../../scripts/budgets.ts";
@@ -23,14 +24,21 @@ test.describe("compressed size budgets", () => {
         const status = response.status();
         if (status >= 300 && status < 400) return;
 
+        const resourceType = response.request().resourceType();
+        const contentType = response.headers()["content-type"] ?? "";
+        const url = response.url();
+        // Clips are excluded from non-home budgets and Chromium may hold open
+        // partial-content (206) streams for longer videos, causing response.body() to hang.
+        if (isExcludedFromBudget(category, { url, resourceType, contentType })) return;
+
         pending.push(
           response
             .body()
             .then((body) => {
               resources.push({
-                url: response.url(),
-                resourceType: response.request().resourceType(),
-                contentType: response.headers()["content-type"] ?? "",
+                url,
+                resourceType,
+                contentType,
                 compressedBytes: compressedSize(body),
               });
             })

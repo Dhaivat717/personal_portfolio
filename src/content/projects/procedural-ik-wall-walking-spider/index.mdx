@@ -1,0 +1,93 @@
+---
+title: Procedural IK Wall-Walking Spider
+pitch: "A Unity 3D wall-walking spider with custom IK leg wiring, NPC roaming, and a Times Square WebGL scene."
+when: "Fall 2021"
+stack: [Unity, C#, Procedural IK, CCD, WebGL]
+builtOn:
+  name: Unity-Procedural-IK-Wall-Walking-Spider
+  author: Philipp Schofield (PhilS94)
+  url: https://github.com/PhilS94/Unity-Procedural-IK-Wall-Walking-Spider
+links:
+  code: https://github.com/Dhaivat717/CG_FinalProj
+  play:
+    - label: "Play in browser"
+      url: https://dhaivat717.itch.io/spiderman-in-our-universe
+order: 1060
+featured: true
+icon: spider
+media:
+  src: hero.mp4
+  poster: ./hero-poster.jpg
+  caption: "The custom spider rig climbing across ledges and walls in our Spider-Man Times Square WebGL scene."
+  alt: "A red-and-black eight-legged procedural spider in Unity perched on a dark ledge casting a shadow across a textured Times Square rooftop."
+---
+
+import Architecture from "./architecture.astro";
+
+## Problem
+
+Keyframed walk cycles break the moment a creature leaves flat ground. On a vertical wall, a 90-degree roof edge, or an angled building facade, pre-baked foot placements float in mid-air or sink into geometry. For our Rutgers Computer Graphics final project in Fall 2021, our team of three—Dhaivat Patel, Kavit Shah, and Chaitanya Vallabhaneni—wanted an interactive browser-playable 3D scene where a Spider-Man–styled spider climbs freely across buildings, billboards, and ledges in a Times Square environment.
+
+Rather than re-implementing a full physics-driven surface-adhesion engine and Cyclic Coordinate Descent (CCD) solver from scratch in a few weeks, we built on top of Philipp Schofield's open-source [Unity-Procedural-IK-Wall-Walking-Spider](https://github.com/PhilS94/Unity-Procedural-IK-Wall-Walking-Spider). The challenge was taking an editor-focused test-room prototype and wiring a custom spider rig, leg kinematics, gait scheduling, autonomous NPC mode, themed 3D scene, and WebGL export pipeline cleanly on top of it.
+
+## Architecture
+
+<Architecture />
+
+The runtime splits into two clear layers: the upstream procedural kinematics core (muted grey in the diagram) and our team's scene, rig, controller, and WebGL build work (accent):
+
+1. **Surface adhesion and body orientation (`01`, upstream).** `Spider.cs` runs at `[DefaultExecutionOrder(0)]` and casts downward and forward `SphereCast` probes against the `walkableLayer` mask. Gravity pulls along the sampled surface normal instead of world down. When the forward sphere-cast hits a vertical wall or obstacle, the spider transitions its ground normal onto the new surface and rotates its body frame smoothly to match.
+2. **Step scheduling and CCD leg solving (`02`, upstream).** Each leg owns an `IKStepper` that raycasts predicted footholds onto nearby geometry and an `IKChain` solved in `LateUpdate` by `IKSolver.solveChainCCD` under per-joint `JointHinge` rotational limits. `IKStepManager` (`[DefaultExecutionOrder(+1)]`) gates which legs may lift at once via either `AlternatingTetrapodGait` or queue modes (`QueueWait` / `QueueNoWait`). If a leg is waiting for its adjacent legs to land (`allowedToStep()` returns false), the scheduler pauses its IK chain so the body stays planted.
+3. **Custom spider rig, Times Square scene, and NPC mode (`03`, team additions).** We replaced the upstream test room with `Assets/Scenes/Spiderman.unity`—a Spider-Man–themed Times Square environment with the Daily Bugle / J. Jonah Jameson building, billboards, trees, and props—wired our custom eight-legged spider rig into `IKChain`, `JointHinge`, and `IKStepManager`, tailored the `CameraAbstract` / `SmoothCamera` / `SpectatingCamera` rigs, and added an autonomous `SpiderNPCController` toggled at runtime with `Tab`.
+4. **WebGL build and itch.io export (`04`, team additions).** Because the upstream scripts called `UnityEditor` APIs directly inside gizmo and debug methods, standalone WebGL builds failed to compile. Stripping those editor-only calls let us export `Spiderman_web/` and publish the browser-playable build to itch.io.
+
+## Approach
+
+### Starting point
+
+Every piece of core wall-walking kinematics—normal-aligned gravity, dual sphere-casting, hinge-constrained CCD solving (`IKSolver`, `JointHinge`), raycasted foothold prediction (`IKStepper`), and base camera interpolation (`CameraAbstract`)—comes from Philipp Schofield's [Unity-Procedural-IK-Wall-Walking-Spider](https://github.com/PhilS94/Unity-Procedural-IK-Wall-Walking-Spider). Crediting that foundation up front matters: our job was not to claim the underlying CCD algorithm, but to understand its execution order, scale-dependent thresholds, and scene assumptions well enough to drive a new rig and city environment in the browser.
+
+### Wiring the custom spider rig and step scheduler
+
+Swapping in a custom spider model breaks procedural IK immediately if joint axes, end-effector transforms, or scale-normalized tolerances are off by even a small factor. Notice that `IKChain` derives its solver tolerance, minimum change per iteration, and singularity radius from `transform.lossyScale.y * 0.00001f`, and `Spider.Awake` warns whenever `localScale` is non-uniform.
+
+I configured the custom spider's leg hierarchy and `IKChain` assignments (`jnts`, `eneff`, tolerance, and singularity parameters) while teammate Kavit Shah tuned `JointHinge` rotational limits and initial chain bindings. On the gait side, I updated `IKStepManager.cs` to wire our primary and secondary leg groups and support both `AlternatingTetrapodGait` and queue-based stepping (`QueueWait` and `QueueNoWait`) with velocity-scaled step durations:
+
+```csharp
+private float calculateStepTime(IKStepper ikStepper)
+{
+    if (flag1)
+    {
+        float k = superSpeed * peter.getScale();
+        float vMag = ikStepper.getIKChain().getEndeffectorVelocityPerSecond().magnitude;
+        return (vMag == 0) ? bigS : Mathf.Clamp(k / vMag, 0, bigS);
+    }
+    else return bigS;
+}
+```
+
+Scaling step duration inversely with end-effector velocity (clamped to `bigS = 0.2f`) keeps legs snappy when the spider sprints across a billboard without snapping harshly when it creeps over a narrow roof ledge.
+
+### Times Square scene, NPC roaming, and UI
+
+Teammate Chaitanya Vallabhaneni built out the bulk of `Assets/Scenes/Spiderman.unity`—the Times Square floor, Daily Bugle / J. Jonah Jameson building, billboards, trees, and props—and refined `SpiderNPCController`, while Kavit Shah tuned `SmoothCamera`. I worked on the on-screen UI controls, fixed prop geometry (such as swapping an elliptical Goblin prop to a sphere so surface-adhesion rays behaved predictably), and integrated the NPC spider and J. Jonah Jameson building materials into the scene.
+
+Pressing `Tab` invokes `SpiderModeSwitch`, which flips between player control (`SpiderController` + `SmoothCamera`) and autonomous roaming (`SpiderNPCController` + `SpectatingCamera`). In NPC mode, `SpiderNPCController` projects its local `X`/`Z` axes onto `spider.getGroundNormal()` each `FixedUpdate` and samples 2D Perlin noise for wandering direction and start/stop intervals, so the autonomous spider explores walls and ledges without getting stuck in world-space coordinates.
+
+### Unblocking the WebGL build
+
+The project ran fine in Unity Play Mode, then failed immediately when exporting to WebGL. Several scripts (`IKChain.cs`, `JointHinge.cs`, and `CameraAbstract.cs`) referenced `UnityEditor.EditorApplication.isPlaying`, `UnityEditor.Selection.Contains`, and `UnityEditor.Handles.DrawSolidArc` inside `OnDrawGizmosSelected` and `drawDebug` without `#if UNITY_EDITOR` guards. Because the `UnityEditor` assembly does not exist in player builds, the WebGL compiler rejected all three files.
+
+I tracked down and removed those editor-only calls across `CameraAbstract.cs`, `IKChain.cs`, and `JointHinge.cs`, verified that runtime rendering and gizmo lines still behaved cleanly, exported the `Spiderman_web/` build, and published it to itch.io.
+
+## Results
+
+- **Interactive wall-walking in a themed 3D scene:** The custom eight-legged spider climbs across flat roofs, vertical building walls, 90-degree corners, and props inside `Spiderman.unity` with live CCD leg placement and normal-aligned gravity.
+- **Dual control modes:** Visitors can drive the spider directly or press `Tab` to hand control to the Perlin-noise `SpiderNPCController` and watch it roam from the spectating camera.
+- **Browser-playable WebGL release:** Removing the `UnityEditor` dependencies unblocked the WebGL export (`Spiderman_web/`), which is live on itch.io at [Play in browser](https://dhaivat717.itch.io/spiderman-in-our-universe) and linked out from the meta strip above rather than embedded so this portfolio stays fast on mobile.
+
+## What I learned
+
+- **Read execution order and scale invariants before editing a kinematics rig.** Understanding `[DefaultExecutionOrder]` across `SpiderNPCController` (`-1`), `Spider` (`0`), and `IKStepManager` (`+1`)—and how `lossyScale.y` feeds every raycast radius and IK tolerance—saved hours of chasing phantom leg jitter.
+- **Play Mode hides player-build breakage.** Unguarded `UnityEditor.*` calls in debug and gizmo hooks compile silently in the editor and only surface when targeting WebGL or standalone builds. Guarding editor-only code with `#if UNITY_EDITOR` from day one avoids last-minute export surprises.
+- **Step scheduling sells the illusion as much as the solver.** Even with a working CCD loop, legs look mechanical if too many lift simultaneously or if step duration ignores movement speed. Pairing `IKStepManager`'s neighbor checks with velocity-clamped step times is what makes wall transitions look grounded.

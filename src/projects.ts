@@ -9,7 +9,7 @@ export type Project = CollectionEntry<"projects">;
  * Drafts are included only when drafts are shown (see `showDrafts`); otherwise
  * they are absent entirely: no page and no row.
  *
- * Fails the build if two projects share an `order` or more than 3 are featured.
+ * Fails the build if two projects share an `order` or more than 4 are featured.
  */
 export async function getProjects(): Promise<Project[]> {
   const all = await getCollection("projects");
@@ -52,7 +52,7 @@ function assertUniqueOrder(projects: Project[]): void {
   }
 }
 
-const MAX_FEATURED = 3;
+const MAX_FEATURED = 4;
 
 /** Checked across drafts too, so publishing a draft can never exceed the cap. */
 function assertFeaturedCap(projects: Project[]): void {

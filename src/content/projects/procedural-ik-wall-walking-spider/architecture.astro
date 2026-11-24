@@ -1,0 +1,144 @@
+---
+/**
+ * Architecture diagram for Procedural IK Wall-Walking Spider.
+ *
+ * Upstream (tone="upstream", muted dashed): PhilS94's core procedural IK and
+ * wall-walking kinematics (surface adhesion, CCD solver, hinge limits, base
+ * step scheduler, and base camera rig).
+ *
+ * Accent (tone="accent"): the team's additions for our Rutgers Computer Graphics
+ * final project (Spider-Man / Times Square scene, custom spider rig & IK/step
+ * wiring, NPC mode + camera/UI updates, and the WebGL build pipeline).
+ */
+import { Arrow, Box, Diagram, Group } from "../../../components/diagram";
+
+const width = 860;
+const mainX = 236;
+const mainW = 368;
+const mid = mainX + mainW / 2; // 420
+const boxH = 56;
+
+const left = { x: 16, width: 176 };
+const right = { x: 664, width: 180 };
+
+const rowY = [48, 136, 266, 354] as const;
+const row = (i: 0 | 1 | 2 | 3) => rowY[i];
+const centerY = (i: 0 | 1 | 2 | 3) => rowY[i] + boxH / 2;
+---
+
+<Diagram
+  title="Procedural IK wall-walking spider architecture: upstream PhilS94 modules (muted grey) provide surface-adhesion sphere-casting, CCD leg solving with JointHinge limits, and gait step scheduling; team additions (accent) layer a custom Spider-Man Times Square scene, custom spider rig wiring, a Tab-toggled NPC and camera controller, and a WebGL player build with editor-only calls stripped; dashed branches show wall-normal transitions, paused legs waiting on neighbors, NPC camera handoff, and stripped UnityEditor gizmos."
+  width={width}
+  height={440}
+  caption="Muted dashed blocks come from PhilS94's upstream wall-walking IK system; accent blocks are our team's scene, rig, NPC/camera, and WebGL additions."
+>
+  <Group
+    x={mainX - 18}
+    y={10}
+    width={mainW + 36}
+    height={198}
+    label="Upstream · PhilS94 procedural IK core"
+    tone="upstream"
+  />
+  <Group
+    x={mainX - 18}
+    y={228}
+    width={mainW + 36}
+    height={198}
+    label="Team additions · CG_FinalProj"
+    tone="accent"
+  />
+
+  <Group
+    x={left.x}
+    y={row(0)}
+    width={left.width}
+    height={boxH}
+    label="Wall transition"
+    detail="forward sphere-cast"
+    tone="upstream"
+    center
+  />
+  <Group
+    x={right.x}
+    y={row(1)}
+    width={right.width}
+    height={boxH}
+    label="Leg paused"
+    detail="wait for neighbors"
+    tone="upstream"
+    center
+  />
+  <Group
+    x={left.x}
+    y={row(2)}
+    width={left.width}
+    height={boxH}
+    label="NPC + Spectate"
+    detail="Perlin roam · Tab"
+    tone="accent"
+    center
+  />
+  <Group
+    x={right.x}
+    y={row(3)}
+    width={right.width}
+    height={boxH}
+    label="Editor stripped"
+    detail="no UnityEditor APIs"
+    tone="accent"
+    center
+  />
+
+  <Box
+    x={mainX}
+    y={row(0)}
+    width={mainW}
+    height={boxH}
+    step="01"
+    label="Surface adhesion & body (Spider)"
+    detail="down/forward sphere-cast · normal gravity"
+    tone="upstream"
+  />
+  <Box
+    x={mainX}
+    y={row(1)}
+    width={mainW}
+    height={boxH}
+    step="02"
+    label="Step scheduler & CCD IK"
+    detail="IKStepManager · IKStepper · IKSolver · JointHinge"
+    tone="upstream"
+  />
+  <Box
+    x={mainX}
+    y={row(2)}
+    width={mainW}
+    height={boxH}
+    step="03"
+    label="Custom spider rig & Times Square scene"
+    detail="Spiderman.unity · IKChain wiring · UI & cameras"
+    tone="accent"
+  />
+  <Box
+    x={mainX}
+    y={row(3)}
+    width={mainW}
+    height={boxH}
+    step="04"
+    label="WebGL build & itch.io export"
+    detail="Spiderman_web · browser-playable build"
+    tone="accent"
+  />
+
+  {/* Main vertical pipeline */}
+  <Arrow points={[[mid, row(0) + boxH], [mid, row(1)]]} tone="upstream" />
+  <Arrow points={[[mid, row(1) + boxH], [mid, row(2)]]} tone="accent" />
+  <Arrow points={[[mid, row(2) + boxH], [mid, row(3)]]} tone="accent" />
+
+  {/* Edge-case and mode branches */}
+  <Arrow points={[[mainX, centerY(0)], [left.x + left.width, centerY(0)]]} label="wall hit" tone="upstream" branch />
+  <Arrow points={[[mainX + mainW, centerY(1)], [right.x, centerY(1)]]} label="blocked" tone="upstream" branch />
+  <Arrow points={[[mainX, centerY(2)], [left.x + left.width, centerY(2)]]} label="Tab key" tone="accent" branch />
+  <Arrow points={[[mainX + mainW, centerY(3)], [right.x, centerY(3)]]} label="WebGL" tone="accent" branch />
+</Diagram>
