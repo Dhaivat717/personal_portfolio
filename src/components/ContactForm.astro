@@ -64,7 +64,7 @@ import { site } from "../settings";
 
 <script>
   import { trackEvent } from "../analytics";
-  import { CONTACT_FIELDS, type ContactFieldName } from "../contact";
+  import { CONTACT_FIELDS, CONTACT_SUCCESS_MESSAGE, type ContactFieldName } from "../contact";
 
   const form = document.getElementById("contact-form") as HTMLFormElement | null;
   const statusEl = document.getElementById("contact-status");
@@ -191,7 +191,7 @@ import { site } from "../settings";
         }
 
         form.reset();
-        setStatus(data.message ?? "Thanks, your message has been sent.", "success");
+        setStatus(data.message ?? CONTACT_SUCCESS_MESSAGE, "success");
         (window as TurnstileWindow).turnstile?.reset?.();
         trackEvent("contact-sent");
       } catch {

@@ -1,7 +1,7 @@
 ---
 /**
  * Build, runtime, and verification architecture of the Personal Portfolio.
- * Upstream: authored MDX/YAML content and Cloudflare Pages hosting.
+ * Upstream: authored MDX/JSON content and Cloudflare Pages hosting.
  * Accent: build-time guardrails, static Astro + Satori OG pipeline, and Edge Functions.
  * Dashed branches show failure/edge paths: build failures, production draft exclusion,
  * zero-JS 303 redirects, Turnstile/API error fallbacks, and CI regressions.
@@ -20,7 +20,7 @@ const fn = { x: 442, width: 174, cx: 529 };
 ---
 
 <Diagram
-  title="Portfolio architecture: authored MDX, YAML, and media pass strict content and size guardrails, compile into static HTML with inline CSS, zero-JS SVG diagrams, and Satori 1200x630 PNG social cards, undergo post-build integrity checks, deploy to Cloudflare Pages CDN and dual-mode Edge Functions, and are verified across Vitest build fixtures and Playwright browser tests, with dashed branches for build failures, production draft exclusion, zero-JS redirects, API errors, and CI regressions."
+  title="Portfolio architecture: authored MDX, JSON, and media pass strict content and size guardrails, compile into static HTML with inline CSS, zero-JS SVG diagrams, and Satori 1200x630 PNG social cards, undergo post-build integrity checks, deploy to Cloudflare Pages CDN and dual-mode Edge Functions, and are verified across Vitest build fixtures and Playwright browser tests, with dashed branches for build failures, production draft exclusion, zero-JS redirects, API errors, and CI regressions."
   width={width}
   height={592}
   caption="Content guardrails and post-build checks fail fast at compile time; production builds exclude drafts, and Edge Functions degrade to 303 redirects without JavaScript."
@@ -50,8 +50,8 @@ const fn = { x: 442, width: 174, cx: 529 };
     x={center.x}
     y={16}
     width={center.width}
-    label="MDX content + YAML + assets"
-    detail="src/content/projects · experience.yaml"
+    label="MDX content + JSON + assets"
+    detail="src/content/projects · experience.json"
     tone="upstream"
   />
   <Box
