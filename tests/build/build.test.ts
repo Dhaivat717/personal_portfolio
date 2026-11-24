@@ -177,7 +177,7 @@ describe("Home page Experience section", () => {
 });
 
 describe("Home page Projects band", () => {
-  test("shows up to 3 featured projects lowest order first, excludes non-featured, and links to /projects", () => {
+  test("shows up to 4 featured projects lowest order first, excludes non-featured, and links to /projects", () => {
     const build = buildWithFixture("featured");
     expect(build.status).toBe(0);
 
@@ -295,13 +295,13 @@ describe("Personal project schema", () => {
     expect(output).toMatch(/"not-a-real-icon" is not a Lucide icon name/);
   });
 
-  test("more than 3 featured projects fail the build with a clear message", () => {
+  test("more than 4 featured projects fail the build with a clear message", () => {
     const { status, output } = buildWithFixture("too-many-featured");
     expect(status).not.toBe(0);
-    expect(output).toMatch(/at most 3/i);
+    expect(output).toMatch(/at most 4/i);
     expect(output).toMatch(/featured/i);
     expect(output).toContain('"f1"');
-    expect(output).toContain('"f4"');
+    expect(output).toContain('"f5"');
   });
 });
 

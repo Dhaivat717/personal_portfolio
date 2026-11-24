@@ -9,7 +9,7 @@ This checklist is the single workflow both the owner and agents follow to add a 
 3. **Add media**: images next to `index.mdx`, clips in `public/<slug>/` with posters next to `index.mdx`.
 4. **Claude drafts copy and diagrams**: write the five-section Deep dive body and `architecture.astro` using the diagram kit.
 5. **Owner edits**: review and revise all drafted copy, verify technical claims and metrics, and adjust diagrams or media.
-6. **Set `order` and `featured`**: pick the project's `order` (new projects take `980`, `960`, …), decide whether it is a **Featured project** (max 3 total), and remove `draft: true` when ready to publish.
+6. **Set `order` and `featured`**: pick the project's `order` (new projects take `980`, `960`, …), decide whether it is a **Featured project** (max 4 total), and remove `draft: true` when ready to publish.
 7. **Verify locally**: run `npm run check && npm run build && npm test`.
 8. **Open a PR**: push the branch, confirm all CI checks pass, review the Cloudflare Pages preview deploy (drafts render on previews), and squash-merge to `main` to publish.
 
@@ -59,7 +59,7 @@ The schema in `src/content.config.ts` is **strict**: any unknown field or missin
 | `links.code` | URL string | Yes | Valid repository URL. Renders as `Code ↗`. |
 | `links.play` | `{ label, url }[]` | No | Optional playable/live demo links. Give each entry a distinct `label` (e.g., `"Play on itch.io"`). Link Unity WebGL demos out; never embed them. |
 | `order` | `number` | Yes | **Unique across all Personal projects (drafts included).** Lowest appears first everywhere. |
-| `featured` | `boolean` | Yes | Shows the project in the Home page Projects Section band. **At most 3 projects can have `featured: true` (drafts included).** |
+| `featured` | `boolean` | Yes | Shows the project in the Home page Projects Section band. **At most 4 projects can have `featured: true` (drafts included).** |
 | `icon` | `string` | Yes | Valid [Lucide](https://lucide.dev/icons) icon name (e.g., `cake`, `database`, `cpu`). |
 | `media.src` | clip name or image | Yes | Clip filename in `public/<slug>/` (`hero.mp4`) or relative image next to `index.mdx` (`./hero.png`). |
 | `media.poster` | image | If clip | Required when `media.src` is a clip; relative image next to `index.mdx` (`./hero-poster.jpg`). |
@@ -254,7 +254,7 @@ Clips are muted, looping, and lazy-loaded (only the poster loads up front; the c
 ### Featured projects
 
 - Set `featured: true` to show a Personal project on the Home page as well as `/projects`.
-- **At most 3** Personal projects can be featured at once (drafts included). To feature a new project when 3 are already featured, set `featured: false` on one of the existing Featured projects.
+- **At most 4** Personal projects can be featured at once (drafts included). To feature a new project when 4 are already featured, set `featured: false` on one of the existing Featured projects.
 
 ### Drafts
 
@@ -286,5 +286,5 @@ SHOW_DRAFTS=false npm run build
 
 ### What fails the build vs. warns
 
-- **Fails the build**: unknown or missing frontmatter fields; `pitch` > 120 characters; invalid Lucide `icon`; duplicate `order`; > 3 `featured` projects; wrong, extra, missing, or reordered `h2` headings; missing diagram in `## Architecture`; missing media file; clip > 4 MB; source image > 1 MB; clip without a poster; missing `alt` or `caption`; missing or invalid social preview card.
+- **Fails the build**: unknown or missing frontmatter fields; `pitch` > 120 characters; invalid Lucide `icon`; duplicate `order`; > 4 `featured` projects; wrong, extra, missing, or reordered `h2` headings; missing diagram in `## Architecture`; missing media file; clip > 4 MB; source image > 1 MB; clip without a poster; missing `alt` or `caption`; missing or invalid social preview card.
 - **Warns only**: Deep dive body outside 800–1,500 words.
