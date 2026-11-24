@@ -32,7 +32,7 @@ I wanted a portfolio built like a production web application, with strict invari
 
 <Architecture />
 
-Everything starts as version-controlled content in the repository: MDX files and colocated images under `src/content/projects/` plus `experience.yaml` for Work highlights. From there, the site moves through four stages, with build-time and runtime checks catching problems at the boundary where they belong.
+Everything starts as version-controlled content in the repository: MDX files and colocated images under `src/content/projects/` plus `experience.json` for Work highlights. From there, the site moves through four stages, with build-time and runtime checks catching problems at the boundary where they belong.
 
 1. **Content and media guardrails (01).** Astro's content loader runs `z.strictObject` schemas in `src/content.config.ts` and a custom `withMediaChecks()` wrapper. Unknown frontmatter keys, pitches over 120 characters, invalid Lucide icon names, duplicate `order` values, more than four Featured projects, source images over 1 MB, clips over 4 MB, or clips missing posters immediately fail the build.
 2. **Static Astro build and Satori OG generation (02).** `astro.config.mjs` compiles the site with `output: "static"`, `trailingSlash: "never"`, and `inlineStylesheets: "always"`, using Shiki's `github-dark-high-contrast` theme for code blocks. In the same pass, `src/pages/og/[...page].png.ts` renders 1200x630 dark-theme PNG social cards via Satori and `@resvg/resvg-js`. When `SITE_ENV=production` or `SHOW_DRAFTS=false`, draft Personal projects are excluded completely: no HTML page, no Projects Section row, no sitemap entry, and no social card.
