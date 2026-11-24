@@ -191,7 +191,7 @@ import { site } from "../settings";
         }
 
         form.reset();
-        setStatus(data.message ?? "Thanks — your message has been sent.", "success");
+        setStatus(data.message ?? "Thanks, your message has been sent.", "success");
         (window as TurnstileWindow).turnstile?.reset?.();
         trackEvent("contact-sent");
       } catch {
