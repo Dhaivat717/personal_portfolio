@@ -1,0 +1,133 @@
+---
+/**
+ * Build, runtime, and verification architecture of the Personal Portfolio.
+ * Upstream: authored MDX/JSON content and Cloudflare Pages hosting.
+ * Accent: build-time guardrails, static Astro + Satori OG pipeline, and Edge Functions.
+ * Dashed branches show failure/edge paths: build failures, production draft exclusion,
+ * zero-JS 303 redirects, Turnstile/API error fallbacks, and CI regressions.
+ */
+import { Arrow, Box, Diagram, Group } from "../../../components/diagram";
+
+const width = 860;
+const mid = width / 2; // 430
+
+const center = { x: 256, width: 348 };
+const left = { x: 16, width: 172 };
+const right = { x: 672, width: 172 };
+
+const cdn = { x: 244, width: 174, cx: 331 };
+const fn = { x: 442, width: 174, cx: 529 };
+---
+
+<Diagram
+  title="Portfolio architecture: authored MDX, JSON, and media pass strict content and size guardrails, compile into static HTML with inline CSS, zero-JS SVG diagrams, and Satori 1200x630 PNG social cards, undergo post-build integrity checks, deploy to Cloudflare Pages CDN and dual-mode Edge Functions, and are verified across Vitest build fixtures and Playwright browser tests, with dashed branches for build failures, production draft exclusion, zero-JS redirects, API errors, and CI regressions."
+  width={width}
+  height={592}
+  caption="Content guardrails and post-build checks fail fast at compile time; production builds exclude drafts, and Edge Functions degrade to 303 redirects without JavaScript."
+>
+  {/* Runtime container */}
+  <Group
+    x={228}
+    y={344}
+    width={404}
+    height={124}
+    label="Cloudflare Pages (CDN + Functions)"
+    tone="upstream"
+  />
+
+  {/* Right-side edge-case groups */}
+  <Group x={right.x} y={96} width={right.width} height={52} label="Build fails" detail="schema · media" center />
+  <Group x={right.x} y={176} width={right.width} height={52} label="Draft excluded" detail="SITE_ENV=prod" center />
+  <Group x={right.x} y={256} width={right.width} height={52} label="Build fails" detail="spine · SVG · OG" center />
+  <Group x={right.x} y={356} width={right.width} height={52} label="303 redirect" detail="no-JS form POST" center />
+  <Group x={right.x} y={424} width={right.width} height={52} label="Error / fallback" detail="400 · 502 · timeout" center />
+
+  {/* Left-side verification failure group */}
+  <Group x={left.x} y={516} width={left.width} height={52} label="CI blocked" detail="budget · a11y" center />
+
+  {/* Main vertical pipeline */}
+  <Box
+    x={center.x}
+    y={16}
+    width={center.width}
+    label="MDX content + JSON + assets"
+    detail="src/content/projects · experience.json"
+    tone="upstream"
+  />
+  <Box
+    x={center.x}
+    y={96}
+    width={center.width}
+    step="01"
+    label="Content & media guardrails"
+    detail="strict Zod · unique order · ≤ 4 featured"
+    tone="accent"
+  />
+  <Box
+    x={center.x}
+    y={176}
+    width={center.width}
+    step="02"
+    label="Static Astro build + Satori OG"
+    detail="inline CSS · zero-JS SVGs · 1200×630 PNG"
+    tone="accent"
+  />
+  <Box
+    x={center.x}
+    y={256}
+    width={center.width}
+    step="03"
+    label="Post-build integrity checks"
+    detail="h2 spine · data-diagram · PNG bytes"
+  />
+
+  {/* Cloudflare Pages runtime boxes */}
+  <Box
+    x={cdn.x}
+    y={388}
+    width={cdn.width}
+    height={56}
+    label="Static CDN"
+    detail="HTML · inline CSS · OG"
+  />
+  <Box
+    x={fn.x}
+    y={388}
+    width={fn.width}
+    height={56}
+    label="Edge Functions"
+    detail="/api/contact · stats"
+    tone="accent"
+  />
+
+  {/* Verification seam */}
+  <Box
+    x={center.x}
+    y={516}
+    width={center.width}
+    step="04"
+    label="Two-seam verification"
+    detail="Seam 1: Vitest builds · Seam 2: Playwright"
+  />
+
+  {/* Happy-path vertical arrows */}
+  <Arrow points={[[mid, 68], [mid, 96]]} />
+  <Arrow points={[[mid, 148], [mid, 176]]} />
+  <Arrow points={[[mid, 228], [mid, 256]]} />
+
+  {/* Post-build -> CDN and Edge Functions */}
+  <Arrow points={[[mid, 308], [mid, 330], [cdn.cx, 330], [cdn.cx, 388]]} />
+  <Arrow points={[[mid, 308], [mid, 330], [fn.cx, 330], [fn.cx, 388]]} />
+
+  {/* CDN and Edge Functions -> Two-seam verification */}
+  <Arrow points={[[cdn.cx, 444], [cdn.cx, 492], [mid, 492], [mid, 516]]} />
+  <Arrow points={[[fn.cx, 444], [fn.cx, 492], [mid, 492], [mid, 516]]} />
+
+  {/* Dashed edge-case branches */}
+  <Arrow points={[[center.x + center.width, 122], [right.x, 122]]} label="invalid" branch />
+  <Arrow points={[[center.x + center.width, 202], [right.x, 202]]} label="draft" branch />
+  <Arrow points={[[center.x + center.width, 282], [right.x, 282]]} label="missing" branch />
+  <Arrow points={[[fn.x + fn.width, 404], [644, 404], [644, 382], [right.x, 382]]} label="no JS" labelAt={[644, 374]} branch />
+  <Arrow points={[[fn.x + fn.width, 428], [644, 428], [644, 450], [right.x, 450]]} label="fail" labelAt={[644, 466]} branch />
+  <Arrow points={[[center.x, 542], [left.x + left.width, 542]]} label="regression" branch />
+</Diagram>

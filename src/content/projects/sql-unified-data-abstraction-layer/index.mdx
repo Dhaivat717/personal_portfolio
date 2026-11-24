@@ -19,7 +19,7 @@ import beforeQuery from "./approach-before-query.png";
 
 ## Problem
 
-When you want to compare how three different database engines handle the same analytical workload, the friction starts before the first benchmark. MySQL uses one client and connection model, Amazon Redshift speaks PostgreSQL wire protocol over a columnar warehouse, and MongoDB doesn't speak SQL at all—it expects JSON-shaped `find()` filters and aggregation pipelines. Switching between three shells, rewriting the same question in two query languages, and hand-copying results into spreadsheets makes side-by-side comparison slow and error-prone.
+When you want to compare how three different database engines handle the same analytical workload, the friction starts before the first benchmark. MySQL uses one client and connection model, Amazon Redshift speaks PostgreSQL wire protocol over a columnar warehouse, and MongoDB doesn't speak SQL at all; it expects JSON-shaped `find()` filters and aggregation pipelines. Switching between three shells, rewriting the same question in two query languages, and hand-copying results into spreadsheets makes side-by-side comparison slow and error-prone.
 
 We built this web application for a graduate database systems course at Rutgers to put all three engines behind a single SQL workbench loaded with the Instacart Market Basket Analysis dataset on AWS. The goal was straightforward: let a user pick MySQL, Amazon Redshift, or MongoDB from one screen, write standard SQL once, see the exact execution time and tabular output in the browser, and export the result as CSV without touching a driver or rewriting queries for NoSQL.
 
@@ -50,7 +50,7 @@ Three edge-case paths branch off the main flow:
 
 ### One SQL interface over relational and document stores
 
-Rather than writing a fragile custom SQL-to-MongoDB parser that would break on joins, `GROUP BY`, or nested predicates, we used `pyodbc` with the Devart ODBC Driver for MongoDB. That choice kept the MongoDB path structurally identical to MySQL and Redshift inside Flask—the same `cur.execute()` call, the same `cur.description` metadata, and the same `cur.fetchall()` loop.
+Rather than writing a fragile custom SQL-to-MongoDB parser that would break on joins, `GROUP BY`, or nested predicates, we used `pyodbc` with the Devart ODBC Driver for MongoDB. That choice kept the MongoDB path structurally identical to MySQL and Redshift inside Flask: the same `cur.execute()` call, the same `cur.description` metadata, and the same `cur.fetchall()` loop.
 
 The one subtle difference was row shape. While `pymysql` and `psycopg2` return sequences of tuples that `pandas.DataFrame` accepts directly, `pyodbc` returns `pyodbc.Row` objects that need to be unpacked before constructing a DataFrame:
 
@@ -74,7 +74,7 @@ That single `list(row)` conversion was the difference between a cryptic pandas s
 
 ### Handling all four DB-API cursor states
 
-A naive SQL runner assumes every query returns rows. In practice, users run `CREATE TABLE`, `INSERT`, filtered `SELECT`s that match nothing, and full `SELECT`s—and each DB-API driver signals those states slightly differently. In `app.py`, we split execution into four explicit states based on `(cur.description, r)`:
+A naive SQL runner assumes every query returns rows. In practice, users run `CREATE TABLE`, `INSERT`, filtered `SELECT`s that match nothing, and full `SELECT`s; each DB-API driver signals those states slightly differently. In `app.py`, we split execution into four explicit states based on `(cur.description, r)`:
 
 - `description is not None` and `r != 0`: fetch all rows, build a 1-indexed DataFrame, and enable CSV export.
 - `description is not None` and `r == 0`: build an empty DataFrame with column names only so the schema still renders.
@@ -89,7 +89,7 @@ A naive SQL runner assumes every query returns rows. In practice, users run `CRE
 
 ### Keeping the web tier thin
 
-The frontend is plain server-rendered HTML with Bootstrap styling and a single `POST` form—no client-side framework and no build pipeline. Flask times only the database execution window (`tic` right before `cur.execute`, `toc` after commit and close), not template rendering, so the elapsed time printed under the query box reflects actual query and round-trip latency across RDS, Redshift, and EC2.
+The frontend is plain server-rendered HTML with Bootstrap styling and a single `POST` form: no client-side framework and no build pipeline. Flask times only the database execution window (`tic` right before `cur.execute`, `toc` after commit and close), not template rendering, so the elapsed time printed under the query box reflects actual query and round-trip latency across RDS, Redshift, and EC2.
 
 ## Results
 
@@ -97,7 +97,7 @@ The application successfully ran the same SQL queries against all three AWS back
 
 The screenshot at the top of this page captures a real run of `select * from aisles` against MongoDB: the Devart ODBC driver translated the SQL query, returned the `aisles` collection with each document's `_id` ObjectId alongside `aisle_id` and `aisle`, and completed in `0.0245509` seconds. Switching the radio button to MySQL or Redshift runs the exact same SQL string against RDS or the Redshift cluster without changing a character.
 
-There is no live demo today—the AWS RDS, Redshift, and EC2 instances were torn down after the course ended to avoid ongoing cloud bills—so the source repository and these two captures document the running system.
+There is no live demo today (the AWS RDS, Redshift, and EC2 instances were torn down after the course ended to avoid ongoing cloud bills), so the source repository and these two captures document the running system.
 
 ## What I learned
 

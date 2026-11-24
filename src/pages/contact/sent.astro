@@ -1,4 +1,5 @@
 ---
+import { CONTACT_SUCCESS_MESSAGE } from "../../contact";
 import Base from "../../layouts/Base.astro";
 import { site } from "../../settings";
 ---
@@ -6,7 +7,7 @@ import { site } from "../../settings";
 <Base title={`Message sent · ${site.name}`} noindex>
   <div class="narrow result">
     <h1>Message sent.</h1>
-    <p>Thanks — your message has been sent. I'll reply when I get a chance.</p>
+    <p>{CONTACT_SUCCESS_MESSAGE} I'll reply when I get a chance.</p>
     <p><a href="/#contact">← Back to contact form</a></p>
   </div>
 </Base>
