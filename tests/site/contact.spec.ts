@@ -119,6 +119,7 @@ test.describe("Contact form", () => {
       expect(text).not.toContain(recipient);
       const body = JSON.parse(text);
       expect(body.ok).toBe(true);
+      expect(body.message).not.toContain("—");
 
       expect(emailStub.captured).toHaveLength(1);
       const sent = emailStub.captured[0];
@@ -330,6 +331,7 @@ test.describe("Contact form", () => {
     expect(html).toContain('<meta name="robots" content="noindex">');
     expect(html).toContain("Message sent.");
     expect(html).toContain('href="/#contact"');
+    expect(html).not.toContain("—");
     expect(html).not.toContain("test-recipient@example.invalid");
   });
 

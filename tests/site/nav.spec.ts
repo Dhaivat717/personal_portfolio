@@ -1,8 +1,16 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const PHONE = { width: 390, height: 844 };
 
 const mainNav = (page: Page) => page.getByRole("navigation", { name: "Main" });
+
+const PROJECT_PATH = /^\/projects\/[a-z0-9-]+$/;
+
+async function firstProjectLink(nav: Locator, button: Locator) {
+  const menuId = await button.getAttribute("aria-controls");
+  expect(menuId).toBeTruthy();
+  return nav.locator(`#${menuId} a`).first();
+}
 
 for (const path of ["/", "/no-such-page"]) {
   test(`on ${path} the nav's name links Home and its Section links go to Home anchors`, async ({ page }) => {
@@ -118,10 +126,10 @@ test.describe("at phone width", () => {
     const nav = mainNav(page);
     const menu = nav.getByRole("button", { name: "Menu" });
     const projects = nav.getByRole("button", { name: "Projects" });
-    const project = nav.getByRole("link", { name: "WhatsApp Auto-Wish Bot" });
     const contact = nav.getByRole("link", { name: "Contact" });
 
     await menu.click();
+    const project = await firstProjectLink(nav, projects);
     await expect(projects).toHaveAttribute("aria-expanded", "false");
     await expect(project).toBeHidden();
     const contactBefore = (await contact.boundingBox())!;
@@ -146,8 +154,10 @@ test.describe("at phone width", () => {
 
     await menu.click();
     await projects.click();
+    const href = await project.getAttribute("href");
+    expect(href).toMatch(PROJECT_PATH);
     await project.click();
-    await expect(page).toHaveURL(/\/projects\/whatsapp-auto-wish-bot$/);
+    await expect(page).toHaveURL(href!);
   });
 
   test("closing the menu folds the projects list, so it reopens collapsed", async ({ page }) => {
@@ -205,7 +215,7 @@ test.describe("the Projects drop-down", () => {
     await page.goto("/");
     const nav = mainNav(page);
     const button = nav.getByRole("button", { name: "Projects" });
-    const project = nav.getByRole("link", { name: "WhatsApp Auto-Wish Bot" });
+    const project = await firstProjectLink(nav, button);
     const all = nav.getByRole("link", { name: "All projects →" });
 
     await expect(button).toHaveAttribute("aria-expanded", "false");
@@ -216,7 +226,7 @@ test.describe("the Projects drop-down", () => {
       await page.keyboard.press(key);
       await expect(button).toHaveAttribute("aria-expanded", "true");
       await expect(project).toBeVisible();
-      await expect(project).toHaveAttribute("href", "/projects/whatsapp-auto-wish-bot");
+      await expect(project).toHaveAttribute("href", PROJECT_PATH);
       await expect(all).toHaveAttribute("href", "/projects");
 
       await page.keyboard.press("Escape");
@@ -242,7 +252,7 @@ test.describe("the Projects drop-down", () => {
     await page.goto("/");
     const nav = mainNav(page);
     const button = nav.getByRole("button", { name: "Projects" });
-    const project = nav.getByRole("link", { name: "WhatsApp Auto-Wish Bot" });
+    const project = await firstProjectLink(nav, button);
     await button.hover();
     await expect(button).toHaveAttribute("aria-expanded", "true");
     await project.hover();
@@ -264,7 +274,7 @@ test.describe("the Projects drop-down", () => {
     await page.goto("/");
     const nav = mainNav(page);
     const button = nav.getByRole("button", { name: "Projects" });
-    const project = nav.getByRole("link", { name: "WhatsApp Auto-Wish Bot" });
+    const project = await firstProjectLink(nav, button);
     await nav.getByRole("link", { name: "Experience" }).focus();
     await button.hover();
     await expect(button).toHaveAttribute("aria-expanded", "true");
