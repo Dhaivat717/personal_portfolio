@@ -1,0 +1,94 @@
+---
+title: Rutgers AI Algorithms Suite
+pitch: "Three classical AI modules in Python: 4-color map CSP, Othello Alpha-Beta search, and Naive Bayes digit features."
+when: "2021"
+stack: [Python, Minimax, Naive Bayes, OpenCV, CSP]
+links:
+  code: https://github.com/Dhaivat717/The_othello-reversi_game
+order: 1080
+featured: false
+icon: brain-circuit
+media:
+  src: ./hero.png
+  caption: "Three classical AI modules side by side: 4-colored US map output, 4x4 Othello board with Minimax vs. Alpha-Beta timing, and 28x28 ASCII handwritten digit samples."
+  alt: "Three-panel composite of the Rutgers AI Algorithms Suite: left panel shows a 4-colored United States map produced by OpenCV segmentation and CSP backtracking; middle panel shows a 4x4 green Othello board with black and white discs and a timing summary comparing Minimax against Alpha-Beta pruning at optimal score +10; right panel shows 28x28 ASCII grids for handwritten digits 0 and 9 with interior and edge pixels highlighted."
+draft: true
+---
+
+import Architecture from "./architecture.astro";
+import approachMapColoring from "./approach-map-coloring.jpg";
+
+## Problem
+
+Before reaching for modern neural networks or off-the-shelf solvers, classical artificial intelligence splits reasoning into distinct paradigms: constraint satisfaction over graphs, adversarial search in zero-sum games, and probabilistic classification from engineered features. Treating each paradigm in isolation makes it easy to miss the shared pattern underneath them all: turning raw input (a raster image, a 2D board array, or an ASCII character grid) into a clean mathematical representation that a search or inference algorithm can exploit.
+
+During graduate AI coursework at Rutgers in 2021, we implemented three standalone Python modules spanning these paradigms across three public repositories:
+
+- **4-Color Map Coloring** ([Map_Coloring](https://github.com/Dhaivat717/Map_Coloring)), built collaboratively by our team of three (Kavit Shah, Dhaivat Patel, and Monaal Sanghvi), which takes a blank white-bordered map image and colors every region with four colors so no two neighbors share one.
+- **Othello / Reversi** ([The_othello-reversi_game](https://github.com/Dhaivat717/The_othello-reversi_game)), which implements legal-move evaluation, full-tree Minimax search, and Alpha-Beta pruning to compute exact optimal play.
+- **Handwritten Digit Recognition** ([Handwritten_digits_recognition](https://github.com/Dhaivat717/Handwritten_digits_recognition)), which explores 28x28 ASCII digit feature extraction, loop-topology detection, and log-probability Naive Bayes classification.
+
+Rather than scattering three small coursework repositories across separate pages, this Deep dive groups all three public modules into one technical overview while keeping attribution and verification status transparent.
+
+## Architecture
+
+<Architecture />
+
+All three modules run on Python 3 (with OpenCV and Matplotlib for map coloring, and the Python standard library for Othello and digit recognition). Each module follows a self-contained pipeline with explicit edge-case branches:
+
+1. **4-Color Map Coloring (`01`).** OpenCV reads a raster map image, masks dark and bright background or border pixels, and runs a 4-neighbor breadth-first flood-fill to segment individual regions. Regions smaller than `0.06%` of total image area are dropped as border noise rather than added to the graph. A pairwise border-distance check and ray-march test build the region adjacency graph, and recursive backtracking assigns one of four colors to each node, stepping back whenever a candidate color conflicts with an already-colored neighbor.
+2. **Othello / Reversi (`02`).** Given a board state and active player (`B` or `W`), `get_move_value` scans all eight compass directions to count outflanked opponent discs, and `execute_move` returns a deep-copied next state with those discs flipped. Full Minimax and Alpha-Beta search recurse down the game tree to terminal states scored by piece differential (`B - W`). When a player has no legal moves, search branches into a forced-pass check (either handing the turn back to the opponent or scoring a terminal board); in Alpha-Beta search, any branch where `beta <= alpha` is pruned immediately.
+3. **Handwritten Digit Recognition (`03`).** `main.py` loads 5,000 training and 1,000 validation 28x28 ASCII grids, mapping `' '` to `0` (background), `'#'` to `1` (interior), and `'+'` to `2` (edge). `mp520.py` provides a 784-feature binary foreground extractor, a row-scanning loop-topology detector aimed at distinguishing enclosed digits (`0`, `6`, `8`, `9`), and drafted log-prior and log-likelihood Naive Bayes routines. In the archived public snapshot, `_raise_not_defined()` stubs still guard the final feature, training, and classification entry points.
+
+## Approach
+
+### 4-Color Map Coloring (CSP)
+
+The hardest part of coloring a raster map is not the four-color backtracking loop; it is turning noisy image pixels into an accurate planar adjacency graph. In `mapColoring.py`, we chained `findBackground()`, `cv2.medianBlur(img, 3)`, and a 3x3 sharpening kernel (`cv2.filter2D`) so anti-aliased white borders stay crisp before segmentation. `findBackground()` marks very dark (`R + G + B < 100`) and bright white (`R + G + B > 663`) pixels as `-2`.
+
+Next, `graphStates()` runs a 4-neighbor BFS flood-fill (`regSz`) that merges adjacent pixels whose L1 RGB difference stays within `150`. Any component whose area does not exceed `0.0006 * total_area` is reset to `-1` so stray border specks never become spurious graph vertices. To wire edges between surviving `Region` nodes, `neighbors()` finds the closest pair of border pixels between two regions, rejects pairs farther than `0.15 * (w^2 + h^2)`, and ray-marches along the connecting segment to confirm no third region intervenes. Once the graph is built, `amgMC()` runs recursive backtracking over four fixed BGR colors and renders the colored map through Matplotlib.
+
+<Media
+  src={approachMapColoring}
+  alt="Side-by-side comparison showing a blank gray United States map with white state borders on the left and the 4-colored output map on the right with no adjacent states sharing a color."
+  caption="Map Coloring before and after: OpenCV preprocessing, flood-fill segmentation, and adjacency-graph backtracking produce a valid 4-coloring."
+/>
+
+### Othello / Reversi (Minimax and Alpha-Beta pruning)
+
+In `Othello/Reversi.py`, I separated move validation (`get_move_value`) from state transition (`execute_move`) so both search routines can enumerate legal moves via `getPossibleMoves()` and expand immutable deep-copied child boards. Terminal evaluation (`is_terminal_state`) checks whether the board is full or neither player has a legal flip, returning `b - w` with Black maximizing and White minimizing.
+
+Because Othello allows forced passes when one side is blocked while the opponent can still play, both `minimax()` and `minimax_ab()` explicitly test for an empty move list before flipping turns and checking terminal conditions. Alpha-Beta pruning keeps the exact same optimal value while cutting off branches that cannot improve the active player's bound:
+
+```python
+if player == 'B':
+    v = -9999
+    for move, child in allChildNodes.items():
+        (eval, row, column) = minimax_ab(child, 'W', alpha, beta)
+        if eval > v:
+            v = eval
+            rowb, columnb = move
+        if alpha < eval:
+            alpha = eval
+        if beta <= alpha:
+            break
+    return (v, rowb, columnb)
+```
+
+### Handwritten Digit Recognition (Naive Bayes and loop topology)
+
+In `Handwritten_digits_recognition`, `main.py` parses 28x28 ASCII digit matrices from `Digit_data/` (note that `main.py` references lowercase `digitdata/`, whereas the archived repository folder is `Digit_data/`). In `mp520.py`, `extract_basic_features()` flattens each 28x28 grid into 784 binary foreground indicators (treating both interior `'#'` and edge `'+'` pixels as `1`).
+
+To capture structural cues beyond independent pixel counts, `extract_advanced_features()` scans horizontal gaps bounded by foreground strokes above and below (`upperConnectAt`, `lowerConnectAt`) to detect enclosed loops characteristic of digits like `0`, `6`, `8`, and `9`. The file also drafts log-space class priors and feature log-likelihoods in `compute_statistics()` and `compute_class()` to avoid floating-point underflow across 784 dimensions. However, the archived public commit still leaves `_raise_not_defined()` guards at the top of `extract_final_features()`, `compute_statistics()`, `compute_class()`, and `classify()`, and never populates `labelList`, so I treat this module as an archived coursework work-in-progress rather than a runnable classifier.
+
+## Results
+
+- **Map Coloring (`Map_Coloring`).** Segments and 4-colors blank white-bordered maps (including the US state map shown in the Approach figure) with zero adjacent color conflicts. As documented in the repository README, backtracking runs in `O(4^V)` worst-case time and `O(V)` space for `V` regions.
+- **Othello / Reversi (`The_othello-reversi_game`).** Verified directly with `python3 Othello/main.py` on the 4x4 8-piece start state (`_get_start_game_state_4_8`, row 1 all Black and row 2 all White). Both `full_minimax` and `full_minimax_ab` return the exact same optimal score (`+10`, Black minus White) and identical 8-move optimal sequence, including the forced pass after Black plays `(0, 0)` where White has no legal move and Black moves again at `(3, 2)`. In local Python 3 benchmarks, Alpha-Beta pruning cut runtime from `0.1414 s` to `0.0318 s` (4.4x faster; 3-run median `0.1475 s` vs. `0.0489 s`, 3.0x faster; an earlier run captured in the hero visual measured `0.112 s` vs. `0.021 s`, 5.2x faster). The grading harness (`testcasesChecker.py`) also validates 4x4, 5x5, and 8x8 positions, with `minimax_ab` solving 5x5 states to optimal scores of `0`, `23`, and `17`.
+- **Handwritten Digit Recognition (`Handwritten_digits_recognition`).** The public repository preserves the 5,000-example training set, 1,000-example validation set, 784-feature binary extractor, and drafted loop-detection and log-probability Naive Bayes code. Because the archived snapshot still contains unfinished `_raise_not_defined()` stubs, no validation accuracy is reported here.
+
+## What I learned
+
+- **Representation quality dictates solver reliability.** In map coloring, the four-color backtracking solver took less than twenty lines, while getting clean white borders, filtering sub-pixel noise, and avoiding false adjacencies across thin gaps took most of the engineering effort.
+- **Exact pruning is a discipline in invariants.** Alpha-Beta pruning only delivers a 3x to 5x speedup without changing optimal play if terminal detection, deep-copied board state, and forced-pass turn handoffs behave identically in both search trees.
+- **Archival hygiene matters for public repositories.** Revisiting `Handwritten_digits_recognition` years later reinforced why every public repo deserves a runnable entry point, matching asset paths (`Digit_data/` vs. `digitdata/`), and recorded evaluation outputs before archiving.

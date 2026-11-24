@@ -1,0 +1,91 @@
+---
+/**
+ * Three-module overview for the Rutgers AI Algorithms Suite across the three
+ * public repositories (Map_Coloring, The_othello-reversi_game, and
+ * Handwritten_digits_recognition).
+ *
+ * Upstream: shared Python 3 runtime (OpenCV, Matplotlib, and standard library).
+ * Accent: the three classical AI paradigms implemented in the suite.
+ * Dashed branches capture the key edge-case, pruning, and archived-state paths.
+ */
+import { Arrow, Box, Diagram, Group } from "../../../components/diagram";
+
+const width = 880;
+const mainX = 256;
+const mainW = 368;
+const boxH = 58;
+
+const left = { x: 16, width: 164 };
+const right = { x: 700, width: 164 };
+
+const row = (i: number) => 48 + i * 96;
+const centerY = (i: number) => row(i) + boxH / 2;
+---
+
+<Diagram
+  title="Three-module architecture of the Rutgers AI Algorithms Suite on Python 3: 4-color map coloring segments blank maps with OpenCV flood-fill and solves the adjacency graph via backtracking, Othello/Reversi evaluates 8-directional moves with Minimax and Alpha-Beta pruning, and handwritten digit recognition extracts 784 binary pixel and loop features for log-probability Naive Bayes; dashed branches show noise-region filtering, color-conflict backtracking, forced passes, alpha-beta cutoffs, loop-topology scanning, and archived work-in-progress stubs."
+  width={width}
+  height={332}
+  caption="Three independent classical AI paradigms in Python 3, each with its primary solver pipeline and key edge-case branches."
+>
+  <Group
+    x={mainX - 18}
+    y={10}
+    width={mainW + 36}
+    height={row(2) + boxH + 18 - 10}
+    label="Python 3 runtime · OpenCV · Matplotlib · stdlib"
+    tone="upstream"
+  />
+
+  {/* Left edge-case sinks / branches */}
+  <Group x={left.x} y={row(0)} width={left.width} height={boxH} label="Noise dropped" detail="area <= 0.06%" center />
+  <Group x={left.x} y={row(1)} width={left.width} height={boxH} label="Forced pass" detail="swap or end game" center />
+  <Group x={left.x} y={row(2)} width={left.width} height={boxH} label="Loop detector" detail="upper/lower scan" center />
+
+  {/* Right edge-case sinks / branches */}
+  <Group x={right.x} y={row(0)} width={right.width} height={boxH} label="Backtrack" detail="try next color" center />
+  <Group x={right.x} y={row(1)} width={right.width} height={boxH} label="Subtree pruned" detail="beta <= alpha" center />
+  <Group x={right.x} y={row(2)} width={right.width} height={boxH} label="Archived stub" detail="_raise_not_defined" center />
+
+  {/* Three core AI modules */}
+  <Box
+    x={mainX}
+    y={row(0)}
+    width={mainW}
+    height={boxH}
+    step="01"
+    label="4-Color Map Coloring (CSP)"
+    detail="OpenCV flood-fill · adjacency · 4-color DFS"
+    tone="accent"
+  />
+  <Box
+    x={mainX}
+    y={row(1)}
+    width={mainW}
+    height={boxH}
+    step="02"
+    label="Othello / Reversi (Search)"
+    detail="8-dir flips · Minimax · Alpha-Beta cutoffs"
+    tone="accent"
+  />
+  <Box
+    x={mainX}
+    y={row(2)}
+    width={mainW}
+    height={boxH}
+    step="03"
+    label="Digit Recognition (Naive Bayes)"
+    detail="28x28 ASCII · 784 pixels · log Naive Bayes"
+    tone="accent"
+  />
+
+  {/* Dashed edge-case branches */}
+  <Arrow points={[[mainX, centerY(0)], [left.x + left.width, centerY(0)]]} label="tiny area" branch />
+  <Arrow points={[[mainX + mainW, centerY(0)], [right.x, centerY(0)]]} label="conflict" branch />
+
+  <Arrow points={[[mainX, centerY(1)], [left.x + left.width, centerY(1)]]} label="no moves" branch />
+  <Arrow points={[[mainX + mainW, centerY(1)], [right.x, centerY(1)]]} label="cutoff" branch />
+
+  <Arrow points={[[mainX, centerY(2)], [left.x + left.width, centerY(2)]]} label="enclosure" branch />
+  <Arrow points={[[mainX + mainW, centerY(2)], [right.x, centerY(2)]]} label="WIP stub" branch />
+</Diagram>
