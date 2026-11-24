@@ -39,6 +39,8 @@ export function buildWithFixture(fixture: string, { env = {} }: BuildOptions = {
       // Pages Production environment (it also turns on analytics).
       SHOW_DRAFTS: "false",
       SITE_ENV: undefined,
+      CF_PAGES: undefined,
+      TURNSTILE_SITE_KEY: undefined,
       ...env,
       PROJECTS_DIR: resolve(root, "tests/build/fixtures", fixture),
       // A fixture's clips live in its own public folder, under each project's slug.

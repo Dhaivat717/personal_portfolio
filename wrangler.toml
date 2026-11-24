@@ -1,3 +1,6 @@
 name = "personal-portfolio"
 compatibility_date = "2026-11-13"
 pages_build_output_dir = "dist"
+
+[env.production.vars]
+SITE_ENV = "production"
