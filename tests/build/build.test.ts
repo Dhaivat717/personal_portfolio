@@ -514,6 +514,31 @@ describe("production-only analytics", () => {
   });
 });
 
+describe("Contact form Turnstile site key", () => {
+  test("uses the test key locally/in CI and the production key on Cloudflare Pages (CF_PAGES=1) or SITE_ENV=production", () => {
+    const local = buildWithFixture("valid");
+    expect(local.status).toBe(0);
+    expect(local.page("/")).toContain('data-sitekey="1x00000000000000000000AA"');
+
+    const pages = buildWithFixture("valid", { env: { CF_PAGES: "1" } });
+    expect(pages.status).toBe(0);
+    expect(pages.page("/")).toContain('data-sitekey="0x4AAAAAAGMNv4OkZcEnpc7M"');
+
+    const prod = buildWithFixture("valid", { env: { SITE_ENV: "production" } });
+    expect(prod.status).toBe(0);
+    expect(prod.page("/")).toContain('data-sitekey="0x4AAAAAAGMNv4OkZcEnpc7M"');
+  });
+
+  test("prefers an explicit TURNSTILE_SITE_KEY over the environment default", () => {
+    const customKey = "0x4AAAAAAA_CUSTOM_OVERRIDE";
+    const overridden = buildWithFixture("valid", {
+      env: { CF_PAGES: "1", TURNSTILE_SITE_KEY: customKey },
+    });
+    expect(overridden.status).toBe(0);
+    expect(overridden.page("/")).toContain(`data-sitekey="${customKey}"`);
+  });
+});
+
 describe("Personal project media", () => {
   // The pass case for each rule is the `valid` fixture: `full` has a clip in
   // public/full/ and a poster next to its MDX, `minimal` an image next to its MDX.

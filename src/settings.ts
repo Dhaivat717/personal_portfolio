@@ -23,14 +23,16 @@ export const site = {
   /** Canonical origin, no trailing slash. */
   origin: "https://dhaivat.dev",
   /**
-   * Turnstile site key (public): production key on `dhaivat.dev`
-   * (`SITE_ENV=production`), and Cloudflare's always-pass test key in local
-   * dev and CI where the site runs on `localhost` against the test secret.
+   * Turnstile site key (public): explicit `TURNSTILE_SITE_KEY` override when
+   * set, otherwise the production key on Cloudflare Pages (`CF_PAGES=1`) or
+   * `SITE_ENV=production`, and Cloudflare's always-pass test key in local dev
+   * and CI where the site runs on `localhost` against the test secret.
    */
   turnstileSiteKey:
-    process.env.SITE_ENV === "production"
+    process.env.TURNSTILE_SITE_KEY?.trim() ||
+    (process.env.SITE_ENV === "production" || process.env.CF_PAGES === "1"
       ? "0x4AAAAAAGMNv4OkZcEnpc7M"
-      : "1x00000000000000000000AA",
+      : "1x00000000000000000000AA"),
   /**
    * Public analytics identifiers (launch checklist step 4). Scripts render only
    * when `SITE_ENV=production`; `UMAMI_WEBSITE_ID` and `CF_WEB_ANALYTICS_TOKEN`
