@@ -77,7 +77,7 @@ test("hero renders two equal-height columns with the ID card, stat boxes and CTA
   await expect(contactBtn).toHaveAttribute("href", "#contact");
 });
 
-test("the about.md editor types out its text on load and again on reload without resizing the hero columns", async ({
+test("the about.me editor types out its text on load and again on reload without resizing the hero columns", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -115,7 +115,7 @@ test("the about.md editor types out its text on load and again on reload without
 test.describe("with prefers-reduced-motion: reduce", () => {
   test.use({ reducedMotion: "reduce" });
 
-  test("the full about.md editor text renders immediately without typing", async ({ page }) => {
+  test("the full about.me editor text renders immediately without typing", async ({ page }) => {
     await recordInitialEditorText(page);
     await page.goto("/");
     const editor = page.locator("[data-about-editor]");
@@ -131,7 +131,7 @@ test.describe("with prefers-reduced-motion: reduce", () => {
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("the full about.md editor text and baked contributions number render immediately", async ({
+  test("the full about.me editor text and baked contributions number render immediately", async ({
     page,
   }) => {
     await page.goto("/");
