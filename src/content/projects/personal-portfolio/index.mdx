@@ -1,0 +1,89 @@
+---
+title: Personal Portfolio
+pitch: "A static-first Astro portfolio with build-time content guardrails, zero-JS SVG diagrams, and two-seam verification."
+when: "Nov 2026"
+stack: [Astro, TypeScript, Cloudflare Pages, Vitest, Playwright]
+links:
+  code: https://github.com/Dhaivat717/personal_portfolio
+order: 980
+featured: false
+icon: layout-template
+media:
+  src: ./hero.png
+  caption: "Side-by-side light and dark mode views of the Home page, rendered from the same CSS light-dark() design tokens under reduced motion."
+  alt: "Split-screen desktop view of the Personal Portfolio Home page showing light mode on the left and dark mode on the right. The left half displays Dhaivat Patel's portrait card, role badges, and light-themed bio window; the right half continues the bio text in dark mode alongside Masters and GitHub contributions stat cards."
+draft: true
+---
+
+import Architecture from "./architecture.astro";
+
+## Problem
+
+Most developer portfolios start simple and quietly rot. A heavy single-page framework ships hundreds of kilobytes of JavaScript just to render a biography. Adding a new Personal project means hand-editing social preview images, remembering image size limits, and hoping a typo in frontmatter or a broken diagram does not slip into production. Meanwhile, a contact form often stops working the moment a Visitor disables scripts or hits a rate limit.
+
+I wanted a portfolio built like a production web application, with strict invariants enforced automatically at build time rather than by memory. Specifically, I needed four things:
+
+- **Fast, static-first pages.** The Home page, Projects Section, and every Deep dive should render as plain HTML with inlined CSS, self-hosted subset fonts, and minimal JavaScript, staying well inside explicit transfer budgets.
+- **Mechanical content guardrails.** Every Personal project should validate its metadata, icon, ordering, Featured project count, heading structure, architecture diagram, and media sizes during `astro build`, failing the build before broken content can ship.
+- **Zero-JS visuals and automated social cards.** Architecture diagrams should follow light and dark mode without client-side scripts, and every published page should get a crisp 1200x630 social preview card automatically.
+- **Progressive-enhancement edge endpoints.** Dynamic features (contact submission and live GitHub contribution stats) should run on Cloudflare Pages Functions while degrading gracefully when JavaScript is unavailable or an upstream API times out.
+
+## Architecture
+
+<Architecture />
+
+Everything starts as version-controlled content in the repository: MDX files and colocated images under `src/content/projects/` plus `experience.yaml` for Work highlights. From there, the site moves through four stages, with build-time and runtime checks catching problems at the boundary where they belong.
+
+1. **Content and media guardrails (01).** Astro's content loader runs `z.strictObject` schemas in `src/content.config.ts` and a custom `withMediaChecks()` wrapper. Unknown frontmatter keys, pitches over 120 characters, invalid Lucide icon names, duplicate `order` values, more than four Featured projects, source images over 1 MB, clips over 4 MB, or clips missing posters immediately fail the build.
+2. **Static Astro build and Satori OG generation (02).** `astro.config.mjs` compiles the site with `output: "static"`, `trailingSlash: "never"`, and `inlineStylesheets: "always"`, using Shiki's `github-dark-high-contrast` theme for code blocks. In the same pass, `src/pages/og/[...page].png.ts` renders 1200x630 dark-theme PNG social cards via Satori and `@resvg/resvg-js`. When `SITE_ENV=production` or `SHOW_DRAFTS=false`, draft Personal projects are excluded completely: no HTML page, no Projects Section row, no sitemap entry, and no social card.
+3. **Post-build integrity checks (03).** Two custom `astro:build:done` integrations inspect the generated `dist/` directory. `src/deepDive.ts` verifies the exact five-heading `h2` spine (`Problem`, `Architecture`, `Approach`, `Results`, `What I learned`) and warns outside the 800 to 1,500 word range. `src/architectureCheck.ts` confirms every Deep dive's Architecture section contains a `<figure data-diagram>` element, and `src/socialCardCheck.ts` checks every non-`noindex` page's `og:image` file for existence, PNG magic bytes, and exact 1200x630 dimensions.
+4. **Cloudflare Pages runtime and two-seam verification (04).** Built HTML, inlined CSS, and PNG cards serve directly from Cloudflare's static CDN, while `functions/api/contact.ts` and `functions/api/github-stats.ts` handle dynamic requests at the edge. The contact endpoint supports both `application/json` fetch calls and standard HTML form `POST` requests, issuing `303 See Other` redirects to `/contact/sent` or `/contact/error` when JavaScript is off, and returning structured error responses on Turnstile or upstream failures. Finally, Vitest (Seam 1) and Playwright against `wrangler pages dev` (Seam 2) verify both build contracts and live browser behavior before any change merges.
+
+## Approach
+
+### Build-time guardrails as code
+
+Rather than relying on manual checklists alone, I moved every structural rule into the Astro build pipeline. Collection loaders enforce strict schemas and media caps, while `src/projects.ts` enforces global invariants across all Personal projects, including drafts:
+
+```ts
+if (orders.has(p.data.order)) {
+  throw new Error(`Duplicate project order ${p.data.order}: ...`);
+}
+if (featuredCount > MAX_FEATURED) {
+  throw new Error(`At most ${MAX_FEATURED} projects may be featured.`);
+}
+```
+
+Checking `order` uniqueness and the four-project Featured cap even on drafts prevents a surprise build break on the day a draft is published. Meanwhile, keeping environment overrides (`PROJECTS_DIR`, `EXPERIENCE_FILE`, `PUBLIC_DIR`, `FIXTURE_PAGE`) in the content config lets the Vitest build suite inject isolated fixture directories and assert that every guardrail actually fails when violated.
+
+### Zero-JS theme-tokenized SVG diagrams
+
+External diagram tools like Mermaid or exported PNGs either ship a client runtime or break contrast when a Visitor switches themes. Instead, I built a small internal diagram kit under `src/components/diagram/` (`Diagram`, `Box`, `Arrow`, `Group`, and `Label`). Every component emits semantic inline SVG styled exclusively with CSS `light-dark(...)` tokens from `src/styles/global.css`. Switching `:root[data-theme]` updates diagram strokes, fills, and muted labels with zero JavaScript and zero re-renders. Each `<Diagram>` requires a one-sentence `title` wired to `<svg role="img" aria-label={title}>`, paired with the prose walk-through immediately below it.
+
+### Automated 1200x630 social preview cards
+
+Maintaining custom Open Graph images by hand does not scale as new Personal projects are added. At build time, `src/og.ts` constructs a JSX-like layout tree using self-hosted Fontsource WOFF fonts (`Inter` and `JetBrains Mono`), the project's Lucide icon SVG, title, pitch, and first three stack tags, then rasterizes it to a 1200x630 PNG with Satori and `@resvg/resvg-js`. Because `socialCardCheck.ts` parses the built HTML and verifies the PNG header bytes and dimensions on every build, broken or missing social cards are caught before deploy.
+
+### Progressive-enhancement Cloudflare Pages Functions
+
+The site stays static everywhere except two small Cloudflare Pages Functions. `functions/api/contact.ts` inspects the `Accept` header: enhanced browsers receive JSON status responses, while a Visitor with JavaScript disabled submits a normal HTML form and gets a `303 See Other` redirect to `/contact/sent` or `/contact/error?reason=...`. Before sending via Resend, the function validates field length limits (`CONTACT_LIMITS`), verifies the Cloudflare Turnstile token, strips header-injection newlines, and prefixes `[preview] ` to the subject outside production. `functions/api/github-stats.ts` queries the GitHub GraphQL API with a 4-second `AbortController` timeout and caches responses for one hour (`Cache-Control: public, max-age=3600, s-maxage=3600`).
+
+### Two-seam verification
+
+To avoid brittle unit tests coupled to component internals, verification sits at two public boundaries:
+
+- **Seam 1 (Vitest build and unit checks).** Runs WCAG token contrast math (`tests/unit/token-contrast.test.ts`), route and budget checks, and over 30 fixture-driven Astro builds (`tests/build/build.test.ts`) proving each guardrail catches invalid frontmatter, oversized media, missing diagrams, or broken social cards.
+- **Seam 2 (Playwright + Wrangler).** Serves the real `dist/` output through `wrangler pages dev` paired with a local stub (`tests/site/email-stub.mjs`) for Resend and GitHub GraphQL. Fifteen browser specs test navigation, theme switching, contact submission with and without JavaScript, inline diagrams, media lazy loading, SEO and JSON-LD metadata, axe-core accessibility in both light and dark themes, and compressed transfer budgets from `budgets.json`.
+
+## Results
+
+The finished site ships as static HTML with inlined CSS and passes all Seam 1 and Seam 2 checks on every change. Transfer budgets in `budgets.json` cap compressed JavaScript at 60 KB on the Home page (500 KB first load) and 15 KB on the Projects Section and Deep dive pages (800 KB first load, excluding lazy-loaded clips). Both light and dark themes pass automated WCAG token contrast checks and axe-core accessibility scans with zero violations.
+
+Adding a new Personal project now requires only a single folder under `src/content/projects/<slug>/` containing `index.mdx`, `architecture.astro`, and media. Setting `draft: true` lets me review the rendered Deep dive, Projects Section row, navigation drop-down entry, and 1200x630 social card locally and on Cloudflare Pages preview deploys while guaranteeing complete exclusion from production builds until the flag is removed.
+
+## What I learned
+
+- **Enforce content rules at build time, not in docs.** A checklist in a markdown file is easy to forget six months later. Putting schema checks, media size limits, heading structure, diagram presence, and PNG dimension checks into `astro build` turned every convention into a fast, repeatable gate.
+- **Test at seams, not internals.** Testing full fixture builds through Vitest and the real Wrangler-served site through Playwright caught integration issues (like redirect headers, inline styles, and transfer budgets) without locking the tests to component markup.
+- **CSS `light-dark()` eliminates a whole layer of client code.** Sharing one token set across page layout, code blocks, and inline SVG diagrams kept both themes consistent and removed the need for any diagram rendering script.
+- **Progressive enhancement is cheapest when designed in from day one.** Supporting both JSON responses and `303 See Other` redirects in `functions/api/contact.ts` took only a few dozen lines and ensured the contact flow works reliably with or without JavaScript.
