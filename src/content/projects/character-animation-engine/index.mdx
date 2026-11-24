@@ -31,7 +31,7 @@ import behaviorTreesPoster from "./behavior-trees-poster.jpg";
 
 Making virtual characters look believable in real time is never one algorithm. A character that walks smoothly still clips through walls without collision detection; a character that avoids obstacles still looks robotic if its legs skate across the floor; a crowd that follows shortest paths still jams at doorways without physical and psychological spacing; and an interactive scene still feels lifeless if agents cannot coordinate roles, react to a human player, and reach for objects in the room.
 
-Over one graduate semester in Rutgers CS-523, our team of three—Dhaivat Patel, Chaitanya Vallabhaneni, and Kavit Shah—built this stack from the ground up in Unity and C# across four progressive repositories: [B2-Collision](https://github.com/Dhaivat717/B2-Collision), [B3-Character-Animation](https://github.com/Dhaivat717/B3-Character-Animation), [B4-SocialForces](https://github.com/Dhaivat717/B4-SocialForces), and [B5_Behavior_Trees](https://github.com/Dhaivat717/B5_Behavior_Trees). Instead of treating them as four disconnected coursework folders, this Deep dive brings the full progression together into one simulation pipeline.
+Over one graduate semester in Rutgers CS-523, our team of three (Dhaivat Patel, Chaitanya Vallabhaneni, and Kavit Shah) built this stack from the ground up in Unity and C# across four progressive repositories: [B2-Collision](https://github.com/Dhaivat717/B2-Collision), [B3-Character-Animation](https://github.com/Dhaivat717/B3-Character-Animation), [B4-SocialForces](https://github.com/Dhaivat717/B4-SocialForces), and [B5_Behavior_Trees](https://github.com/Dhaivat717/B5_Behavior_Trees). Instead of treating them as four disconnected coursework folders, this Deep dive brings the full progression together into one simulation pipeline.
 
 ## Architecture
 
@@ -113,13 +113,13 @@ The final stage, `B5_Behavior_Trees`, turns steering and animation into an inter
 Across the four repositories, every stage runs interactively in real time in Unity:
 
 - **Collision (B2)** detects and separates overlapping regular and irregular prisms using a depth-5 QuadTree, GJK, and EPA without relying on Unity's built-in collider solver.
-- **Animation and navigation (B3)** shipped as three playable WebGL builds on itch.io—[Locomotion (Part 1)](https://dhaivat717.itch.io/b3-part-1), [NavMesh Navigation (Part 2)](https://dhaivat717.itch.io/b1-part-2), and [10-Agent Crowd (Part 3)](https://dhaivat717.itch.io/b3-part-3)—linked out from the meta strip above rather than embedded so the portfolio stays fast on mobile.
+- **Animation and navigation (B3)** shipped as three playable WebGL builds on itch.io: [Locomotion (Part 1)](https://dhaivat717.itch.io/b3-part-1), [NavMesh Navigation (Part 2)](https://dhaivat717.itch.io/b1-part-2), and [10-Agent Crowd (Part 3)](https://dhaivat717.itch.io/b3-part-3), linked out from the meta strip above rather than embedded so the portfolio stays fast on mobile.
 - **Social forces (B4)** simulates multi-agent crowd navigation, wall repulsion, sliding friction, and interactive leader-following across maze scenes.
 - **Behavior trees (B5)** delivers two distinct interactive endings (friendly greetings vs. the angry light-switcher after more than three player interruptions) driven by live IK affordances and a continuous `DecoratorLoop`.
 
 ## What I learned
 
 - **Broad phase and narrow phase solve different bottlenecks.** Building the QuadTree alongside GJK/EPA made it concrete why game engines split spatial partitioning from exact geometry tests: pruning pairs cheaply matters more than micro-optimizing a simplex loop.
-- **Decoupling simulation state from animation prevents skating.** Letting `NavMeshAgent` own the planned path while `Animator` owns the stride—bridged by a smoothed local-space velocity vector—was the single cleanest architectural seam of the semester.
+- **Decoupling simulation state from animation prevents skating.** Letting `NavMeshAgent` own the planned path while `Animator` owns the stride, bridged by a smoothed local-space velocity vector, was the single cleanest architectural seam of the semester.
 - **Force tuning is sensitive to scale and clamping.** In social-force crowds, exponential repulsion (`A = 2000`, `B = 0.08`) can launch agents across the scene if two bodies overlap deeply; clamping net force to `maxSpeed` and amortizing NavMesh replanning every 25 frames kept the simulation stable.
 - **Behavior trees shine when worlds are interruptible.** Hard-coding a cutscene breaks the moment a human player flips a light switch; wrapping `LeafAssert(bulb.enabled)` inside a `DecoratorLoop` let the NPC react naturally, leave the sofa, and escalate after three interruptions without a tangle of boolean flags.

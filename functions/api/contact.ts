@@ -1,4 +1,4 @@
-import { CONTACT_LIMITS, type ContactFieldName } from "../../src/contact";
+import { CONTACT_LIMITS, CONTACT_SUCCESS_MESSAGE, type ContactFieldName } from "../../src/contact";
 import { site } from "../../src/settings";
 
 interface Env {
@@ -242,5 +242,5 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     );
   }
 
-  return respondSuccess(json, "Thanks — your message has been sent.");
+  return respondSuccess(json, CONTACT_SUCCESS_MESSAGE);
 };
