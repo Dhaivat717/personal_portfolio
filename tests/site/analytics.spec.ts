@@ -45,6 +45,7 @@ async function serveBuiltSite(siteEnv: string | undefined): Promise<{
     ...process.env,
     SHOW_DRAFTS: "false",
     SITE_ENV: siteEnv,
+    ASTRO_TELEMETRY_DISABLED: "1",
     NO_COLOR: "1",
   };
   const filteredEnv = Object.fromEntries(
