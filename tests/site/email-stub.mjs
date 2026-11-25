@@ -39,6 +39,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === "POST" && req.url === "/turnstile/siteverify") {
+    const chunks = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => {
+      const params = new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
+      const success = Boolean(params.get("secret")?.trim() && params.get("response")?.trim());
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ success }));
+    });
+    return;
+  }
+
   if (req.method === "POST" && req.url === "/emails") {
     req.resume();
     req.on("end", () => {

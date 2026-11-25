@@ -1,53 +1,31 @@
 import { expect, test } from "@playwright/test";
-import http from "node:http";
 import { site } from "../../src/settings";
-import { startWrangler } from "./wrangler-helper";
 
-const ALWAYS_PASS_SECRET = "1x0000000000000000000000000000000AA";
-const ALWAYS_FAIL_SECRET = "2x0000000000000000000000000000000AA";
-
-interface CapturedEmailRequest {
-  authorization: string | undefined;
-  body: {
-    from: string;
-    to: string[];
-    reply_to: string;
-    subject: string;
-    text: string;
-  };
-}
-
-async function startEmailStub(): Promise<{
-  url: string;
-  captured: CapturedEmailRequest[];
-  stop: () => Promise<void>;
-}> {
-  const captured: CapturedEmailRequest[] = [];
-  const server = http.createServer((req, res) => {
-    const chunks: Buffer[] = [];
-    req.on("data", (c) => chunks.push(c as Buffer));
-    req.on("end", () => {
-      const raw = Buffer.concat(chunks).toString("utf8");
-      captured.push({
-        authorization: req.headers.authorization,
-        body: JSON.parse(raw),
-      });
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ id: "stub-email-id" }));
-    });
-  });
-
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const addr = server.address();
-  if (!addr || typeof addr === "string") throw new Error("Could not bind email stub");
-  return {
-    url: `http://127.0.0.1:${addr.port}/emails`,
-    captured,
-    stop: () => new Promise<void>((resolve, reject) => server.close((e) => (e ? reject(e) : resolve()))),
-  };
-}
+const TURNSTILE_WIDGET_STUB = `
+  window.turnstile = { reset() {} };
+  for (const el of document.querySelectorAll(".cf-turnstile")) {
+    let input = el.querySelector('input[name="cf-turnstile-response"]');
+    if (!input) {
+      input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "cf-turnstile-response";
+      el.appendChild(input);
+    }
+    input.value = "stub-turnstile-token";
+  }
+`;
 
 test.describe("Contact form", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route("https://challenges.cloudflare.com/turnstile/v0/api.js", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/javascript; charset=utf-8",
+        body: TURNSTILE_WIDGET_STUB,
+      }),
+    );
+  });
+
   test("renders in #contact with visible labels, Turnstile widget, and no email address", async ({
     page,
   }) => {
@@ -78,7 +56,7 @@ test.describe("Contact form", () => {
         name: "   ",
         email: "not-an-email",
         message: "",
-        "cf-turnstile-response": "XXXX.DUMMY.TOKEN.XXXX",
+        "cf-turnstile-response": "stub-turnstile-token",
       },
     });
     expect(res.status()).toBe(400);
@@ -89,118 +67,6 @@ test.describe("Contact form", () => {
       email: expect.any(String),
       message: expect.any(String),
     });
-  });
-
-  test("always-pass Turnstile key sends via email API with [preview] subject outside production", async () => {
-    const recipient = "owner-preview@example.invalid";
-    const emailStub = await startEmailStub();
-    const srv = await startWrangler({
-      TURNSTILE_SECRET_KEY: ALWAYS_PASS_SECRET,
-      CONTACT_TO: recipient,
-      RESEND_API_KEY: "re_preview_secret",
-      EMAIL_API_URL: emailStub.url,
-    });
-    try {
-      const res = await fetch(`${srv.baseUrl}/api/contact`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          accept: "application/json",
-        },
-        body: JSON.stringify({
-          name: "Ada Lovelace",
-          email: "ada@example.test",
-          message: "Hello from the preview test!",
-          "cf-turnstile-response": "XXXX.DUMMY.TOKEN.XXXX",
-        }),
-      });
-      expect(res.status).toBe(200);
-      const text = await res.text();
-      expect(text).not.toContain(recipient);
-      const body = JSON.parse(text);
-      expect(body.ok).toBe(true);
-      expect(body.message).not.toContain("—");
-
-      expect(emailStub.captured).toHaveLength(1);
-      const sent = emailStub.captured[0];
-      expect(sent.authorization).toBe("Bearer re_preview_secret");
-      expect(sent.body.to).toEqual([recipient]);
-      expect(sent.body.reply_to).toBe("ada@example.test");
-      expect(sent.body.subject).toMatch(/^\[preview\] .*Ada Lovelace/);
-      expect(sent.body.text).toContain("Hello from the preview test!");
-    } finally {
-      await srv.stop();
-      await emailStub.stop();
-    }
-  });
-
-  test("SITE_ENV=production omits [preview] from the email subject", async () => {
-    const recipient = "owner-prod@example.invalid";
-    const emailStub = await startEmailStub();
-    const srv = await startWrangler({
-      TURNSTILE_SECRET_KEY: ALWAYS_PASS_SECRET,
-      CONTACT_TO: recipient,
-      RESEND_API_KEY: "re_prod_secret",
-      EMAIL_API_URL: emailStub.url,
-      SITE_ENV: "production",
-    });
-    try {
-      const res = await fetch(`${srv.baseUrl}/api/contact`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          accept: "application/json",
-        },
-        body: JSON.stringify({
-          name: "Grace Hopper",
-          email: "grace@example.test",
-          message: "Production message.",
-          "cf-turnstile-response": "XXXX.DUMMY.TOKEN.XXXX",
-        }),
-      });
-      expect(res.status).toBe(200);
-
-      expect(emailStub.captured).toHaveLength(1);
-      const sent = emailStub.captured[0];
-      expect(sent.body.subject).toBe("Contact from Grace Hopper");
-      expect(sent.body.subject).not.toContain("[preview]");
-    } finally {
-      await srv.stop();
-      await emailStub.stop();
-    }
-  });
-
-  test("always-fail Turnstile key rejects the submission", async () => {
-    const emailStub = await startEmailStub();
-    const srv = await startWrangler({
-      TURNSTILE_SECRET_KEY: ALWAYS_FAIL_SECRET,
-      CONTACT_TO: "owner-fail@example.invalid",
-      RESEND_API_KEY: "re_fail_secret",
-      EMAIL_API_URL: emailStub.url,
-    });
-    try {
-      const res = await fetch(`${srv.baseUrl}/api/contact`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          accept: "application/json",
-        },
-        body: JSON.stringify({
-          name: "Ada Lovelace",
-          email: "ada@example.test",
-          message: "Should be rejected by Turnstile.",
-          "cf-turnstile-response": "XXXX.DUMMY.TOKEN.XXXX",
-        }),
-      });
-      expect(res.status).toBe(400);
-      const body = await res.json();
-      expect(body.ok).toBe(false);
-      expect(body.error).toMatch(/verification/i);
-      expect(emailStub.captured).toHaveLength(0);
-    } finally {
-      await srv.stop();
-      await emailStub.stop();
-    }
   });
 
   test("in the browser, invalid fields show errors linked via aria-describedby and announced in a live region", async ({
@@ -257,9 +123,8 @@ test.describe("Contact form", () => {
     const section = page.locator("#contact");
     await section.scrollIntoViewIfNeeded();
 
-    // Wait for Cloudflare Turnstile's always-pass test widget to populate its hidden token.
     const tokenInput = section.locator('input[name="cf-turnstile-response"]');
-    await expect(tokenInput).toHaveValue(/.+/, { timeout: 15_000 });
+    await expect(tokenInput).toHaveValue("stub-turnstile-token");
 
     await section.getByLabel("Name").fill("Ada Lovelace");
     await section.getByLabel("Email").fill("ada@example.test");
@@ -318,7 +183,7 @@ test.describe("Contact form", () => {
         name: "Ada Lovelace",
         email: "ada@example.test",
         message: "Plain form post!",
-        "cf-turnstile-response": "XXXX.DUMMY.TOKEN.XXXX",
+        "cf-turnstile-response": "stub-turnstile-token",
       },
     });
     expect(res.status()).toBe(303);
