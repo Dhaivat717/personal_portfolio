@@ -45,6 +45,7 @@ export function buildWithFixture(fixture: string, { env = {} }: BuildOptions = {
       PROJECTS_DIR: resolve(root, "tests/build/fixtures", fixture),
       // A fixture's clips live in its own public folder, under each project's slug.
       PUBLIC_DIR: resolve(root, "tests/build/fixtures", fixture, "public"),
+      ASTRO_TELEMETRY_DISABLED: "1",
       NO_COLOR: "1",
     };
     const childEnv = Object.fromEntries(
